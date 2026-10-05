@@ -1,11 +1,19 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requirePerfil } from "@/lib/session";
-import { cargarPedido, cuentasDelPedido } from "@/lib/pedidos";
+import { cargarPedido, cuentasDelPedido, listarMiembros } from "@/lib/pedidos";
+import {
+  avisarCambioDeEstado,
+  avisarPagoAvisado,
+  avisarPagoConfirmado,
+  avisarPedidoNuevo,
+  enviarRecordatorioDeuda,
+} from "@/lib/notificaciones/eventos";
 import { todosPagaron } from "@/lib/calc";
 
 export interface Resultado {
@@ -63,6 +71,10 @@ export async function guardarPedido(orderId: string | null, payload: unknown): P
   const { data, error } = await supabase.rpc("guardar_pedido", { p_order_id: orderId, p_data: parsed.data });
   if (error) return { error: mensajeDeError(error.message) };
 
+  if (orderId === null) {
+    const [pedido, miembros] = await Promise.all([cargarPedido(data as string), listarMiembros()]);
+    if (pedido) after(() => avisarPedidoNuevo(pedido, miembros));
+  }
   revalidatePath("/", "layout");
   redirect(`/pedidos/${data as string}`);
 }
@@ -106,7 +118,7 @@ export async function guardarCantidades(
 const estadoSchema = z.enum(["abierto", "cerrado", "comprado", "entregado", "saldado"]);
 
 export async function cambiarEstado(orderId: string, nuevo: string): Promise<Resultado> {
-  await requirePerfil();
+  const perfil = await requirePerfil();
   const estado = estadoSchema.safeParse(nuevo);
   if (!estado.success) return { error: "Estado inválido." };
 
@@ -114,6 +126,10 @@ export async function cambiarEstado(orderId: string, nuevo: string): Promise<Res
   const { error } = await supabase.rpc("cambiar_estado", { p_order_id: orderId, p_nuevo: estado.data });
   if (error) return { error: mensajeDeError(error.message) };
 
+  if (["cerrado", "abierto", "entregado"].includes(estado.data)) {
+    const [pedido, miembros] = await Promise.all([cargarPedido(orderId), listarMiembros()]);
+    if (pedido) after(() => avisarCambioDeEstado({ pedido, nuevo: estado.data, actorId: perfil.id, miembros }));
+  }
   if (estado.data === "entregado") await sincronizarSaldado(orderId);
   revalidatePath("/", "layout");
   return { ok: "Estado actualizado." };
@@ -156,7 +172,7 @@ const pagoSchema = z.object({
 });
 
 export async function registrarPago(orderId: string, userId: string | null, datos: unknown): Promise<Resultado> {
-  await requirePerfil();
+  const perfil = await requirePerfil();
   const parsed = pagoSchema.safeParse(datos);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -171,6 +187,12 @@ export async function registrarPago(orderId: string, userId: string | null, dato
   });
   if (error) return { error: mensajeDeError(error.message) };
 
+  const [pedido, miembros] = await Promise.all([cargarPedido(orderId), listarMiembros()]);
+  if (pedido) {
+    const monto = parsed.data.monto;
+    if (userId === null || userId === perfil.id) after(() => avisarPagoAvisado({ pedido, pagadorId: perfil.id, monto, miembros }));
+    else after(() => avisarPagoConfirmado({ pedido, pagadorId: userId, monto, miembros }));
+  }
   await sincronizarSaldado(orderId);
   revalidatePath("/", "layout");
   return { ok: userId ? "Pago cargado." : "Listo: le avisamos a quien cobra para que lo confirme." };
@@ -181,6 +203,12 @@ export async function confirmarPago(orderId: string, paymentId: string): Promise
   const supabase = await createClient();
   const { error } = await supabase.rpc("confirmar_pago", { p_payment_id: paymentId });
   if (error) return { error: mensajeDeError(error.message) };
+
+  const [pedido, miembros] = await Promise.all([cargarPedido(orderId), listarMiembros()]);
+  const pago = pedido?.payments.find((x) => x.id === paymentId);
+  if (pedido && pago) {
+    after(() => avisarPagoConfirmado({ pedido, pagadorId: pago.user_id, monto: pago.monto, miembros }));
+  }
 
   await sincronizarSaldado(orderId);
   revalidatePath("/", "layout");
@@ -195,4 +223,19 @@ export async function eliminarPago(paymentId: string): Promise<Resultado> {
 
   revalidatePath("/", "layout");
   return { ok: "Pago eliminado." };
+}
+
+/** Recordatorio manual de deuda: lo manda quien cobra (o un admin). Máximo uno por día por persona y pedido. */
+export async function enviarRecordatorio(orderId: string, deudorId: string): Promise<Resultado> {
+  const perfil = await requirePerfil();
+  const [pedido, miembros] = await Promise.all([cargarPedido(orderId), listarMiembros()]);
+  if (!pedido) return { error: "El pedido no existe." };
+  if (pedido.cobra_user_id !== perfil.id && perfil.rol !== "admin") {
+    return { error: "Solo quien cobra el pedido puede mandar recordatorios." };
+  }
+  if (!["cerrado", "comprado", "entregado"].includes(pedido.estado)) {
+    return { error: "El pedido no tiene deudas para recordar." };
+  }
+  const r = await enviarRecordatorioDeuda({ pedido, deudorId, miembros, origen: "manual" });
+  return r.ok ? { ok: "Recordatorio enviado." } : { error: r.motivo ?? "No se pudo enviar." };
 }

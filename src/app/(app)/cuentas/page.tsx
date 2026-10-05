@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AccionesPago } from "@/components/pagos-controles";
+import { BotonRecordatorio } from "@/components/avisos-ui";
 import { EtiquetaCuenta } from "@/components/etiqueta-cuenta";
 import { Tarjeta, Titulo } from "@/components/ui";
 import { formatPesos } from "@/lib/calc";
@@ -26,7 +27,7 @@ export default async function CuentasPage() {
   const r = resumenDeCuentas(pedidos, perfil.id, new Date(), dias);
   const contacto = (id: string) => miembros.find((m) => m.id === id);
 
-  const bloque = (titulo: string, deudas: Deuda[], clave: (d: Deuda) => string, vacio: string, total: number, verde: boolean) => (
+  const bloque = (titulo: string, deudas: Deuda[], clave: (d: Deuda) => string, vacio: string, total: number, verde: boolean, recordar = false) => (
     <section aria-label={titulo} className="space-y-3">
       <div className="flex items-baseline justify-between">
         <h2 className="text-lg font-bold">{titulo}</h2>
@@ -71,6 +72,7 @@ export default async function CuentasPage() {
                         <EtiquetaCuenta estado={d.estado} />
                       </div>
                     </Link>
+                    {recordar && <BotonRecordatorio orderId={d.pedidoId} userId={d.deudorId} />}
                   </li>
                 ))}
               </ul>
@@ -121,7 +123,7 @@ export default async function CuentasPage() {
       )}
 
       {bloque("Lo que debo", r.debo, (d) => d.cobraId, "No le debés nada a nadie. ¡Bien!", r.totalDebo, false)}
-      {bloque("Lo que me deben", r.meDeben, (d) => d.deudorId, "Nadie te debe nada por ahora.", r.totalMeDeben, true)}
+      {bloque("Lo que me deben", r.meDeben, (d) => d.deudorId, "Nadie te debe nada por ahora.", r.totalMeDeben, true, true)}
     </div>
   );
 }

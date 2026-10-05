@@ -11,8 +11,8 @@ PWA en español rioplatense para que un grupo de ~20 comerciantes organice **com
 | 1. Base, auth, registro con código de invitación, perfiles, PWA instalable | ✅ |
 | 2. Pedidos: crear/editar, productos, cantidades, estados, cobra/recibe | ✅ |
 | 3. Cálculo de cuentas, extras, redondeo por mayor resto (con tests) | ✅ |
-| 4. Pagos, “Mis cuentas”, recordatorios de deuda | ⏳ |
-| 5. Notificaciones push + email | ⏳ |
+| 4. Pagos, “Mis cuentas”, recordatorios de deuda | ✅ |
+| 5. Notificaciones push + email | ✅ |
 | 6. Historial, resumen mensual, exportaciones, comprobantes | ⏳ |
 | 7. Auditoría, reseteo de acceso por admin, pulido | ⏳ (el panel de admin básico ya está) |
 
@@ -20,10 +20,12 @@ PWA en español rioplatense para que un grupo de ~20 comerciantes organice **com
 
 1. **Supabase** (gratis): creá un proyecto. En *SQL Editor* pegá y ejecutá `supabase/migrations/20260101000000_init.sql`.
 2. En *Authentication → Providers → Email*: **desactivá “Confirm email”**. Es un grupo cerrado por invitación y quienes entran con celular usan un email técnico que no recibe mails. En *URL Configuration* poné la URL de la app (y `<url>/auth/callback` en Redirect URLs) para el link de recuperar contraseña.
-3. `cp .env.example .env.local` y completá `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Project Settings → API). **No uses la `service_role`**: la app no la necesita.
-4. `npm install && npm run dev` → http://localhost:3000.
-5. **El primer usuario que se registra queda como admin y no necesita código.** Desde *Perfil → Administrar el grupo* ve el código de invitación para pasárselo al resto.
-6. Deploy: Vercel (importar el repo y cargar las mismas variables de entorno).
+3. Ejecutá también las migraciones siguientes de `supabase/migrations/` en orden (`..._pagos.sql`, `..._avisos.sql`).
+4. `cp .env.example .env.local` y completá `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Project Settings → API).
+   Para los **avisos** hacen falta además (ver `.env.example`): `SUPABASE_SERVICE_ROLE_KEY` (solo servidor, nunca en el navegador), claves VAPID (`npx web-push generate-vapid-keys`), `RESEND_API_KEY`/`EMAIL_FROM` para el email de respaldo y `CRON_SECRET`. Sin estas variables la app funciona igual, pero no manda avisos.
+5. `npm install && npm run dev` → http://localhost:3000.
+6. **El primer usuario que se registra queda como admin y no necesita código.** Desde *Perfil → Administrar el grupo* ve el código de invitación para pasárselo al resto.
+7. Deploy: Vercel (importar el repo y cargar las mismas variables). `vercel.json` ya programa el cron diario de recordatorios.
 
 ## Scripts
 

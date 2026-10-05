@@ -1,3 +1,4 @@
+import { BotonRecordatorio } from "@/components/avisos-ui";
 import { AccionesPago, PagoForm } from "@/components/pagos-controles";
 import { EtiquetaCuenta } from "@/components/etiqueta-cuenta";
 import { Alerta, Tarjeta } from "@/components/ui";
@@ -83,6 +84,7 @@ export function PanelPagos({
                     </div>
                     <EtiquetaCuenta estado={cuenta.estado} />
                   </div>
+                  {cuenta.saldo > 0 && abiertoAPagos && <BotonRecordatorio orderId={pedido.id} userId={persona.userId} />}
                   {cuenta.saldo > 0 && abiertoAPagos && (
                     <details className="mt-2 rounded-xl bg-stone-50 p-3 ring-1 ring-stone-200">
                       <summary className="min-h-10 cursor-pointer py-2 font-semibold text-emerald-800">Cargar pago</summary>

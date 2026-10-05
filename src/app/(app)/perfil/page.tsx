@@ -20,6 +20,9 @@ export default async function PerfilPage() {
         </dl>
       </Tarjeta>
 
+      <Link href="/avisos/preferencias" className={claseBoton("secundario", "w-full")}>
+        🔔 Preferencias de avisos
+      </Link>
       <Link href="/instalar" className={claseBoton("secundario", "w-full")}>
         📲 Instalar la app en el celular
       </Link>

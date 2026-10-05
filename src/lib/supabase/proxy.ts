@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseEnv } from "@/lib/env";
 
-const RUTAS_PUBLICAS = ["/login", "/registro", "/recuperar", "/auth", "/instalar", "/offline"];
+const RUTAS_PUBLICAS = ["/login", "/registro", "/recuperar", "/auth", "/instalar", "/offline", "/api/cron"];
 
 const esPublica = (path: string) =>
   RUTAS_PUBLICAS.some((p) => path === p || path.startsWith(`${p}/`));

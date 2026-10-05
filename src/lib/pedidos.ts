@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type { EstadoPedido, Miembro, Pedido } from "@/lib/pedido-tipos";
 
@@ -24,7 +25,14 @@ export async function cargarPedido(id: string): Promise<Pedido | null> {
 }
 
 export async function listarPedidos(opts: { estados?: EstadoPedido[]; limite?: number } = {}): Promise<Pedido[]> {
-  const supabase = await createClient();
+  return listarPedidosCon(await createClient(), opts);
+}
+
+/** Igual que listarPedidos pero con un cliente dado (por ejemplo, el admin del cron). */
+export async function listarPedidosCon(
+  supabase: Pick<SupabaseClient, "from">,
+  opts: { estados?: EstadoPedido[]; limite?: number } = {},
+): Promise<Pedido[]> {
   let q = supabase.from("orders").select(SELECT_PEDIDO).order("created_at", { ascending: false });
   if (opts.estados?.length) q = q.in("estado", opts.estados);
   if (opts.limite) q = q.limit(opts.limite);

@@ -15,7 +15,9 @@
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
+    "exceljs": "^4.4.0",
     "next": "16.3.8",
+    "pdfkit": "^0.20.2",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "server-only": "^0.0.1",
@@ -25,6 +27,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^22.20.5",
+    "@types/pdfkit": "^0.17.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",

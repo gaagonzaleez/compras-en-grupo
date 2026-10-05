@@ -6,11 +6,12 @@ import type { EstadoPedido, Miembro, Pedido } from "@/lib/pedido-tipos";
 
 export * from "@/lib/pedido-tipos";
 
-const SELECT_PEDIDO = "*, order_items(*, allocations(*)), extra_costs(*, extra_cost_shares(*)), payments(*)";
+const SELECT_PEDIDO = "*, order_items(*, allocations(*)), extra_costs(*, extra_cost_shares(*)), payments(*), attachments(*)";
 
 function ordenar(p: Pedido): Pedido {
   return {
     ...p,
+    attachments: [...(p.attachments ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at)),
     payments: [...(p.payments ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at)),
     order_items: [...p.order_items].sort((a, b) => a.orden - b.orden),
     extra_costs: [...p.extra_costs].sort((a, b) => a.concepto.localeCompare(b.concepto)),
@@ -64,4 +65,14 @@ export async function diasRecordatorio(): Promise<number> {
   const supabase = await createClient();
   const { data } = await supabase.rpc("dias_recordatorio");
   return typeof data === "number" ? data : 7;
+}
+
+/** Links temporales (1 hora) para ver los comprobantes: el bucket es privado. */
+export async function urlsFirmadas(paths: string[]): Promise<Record<string, string>> {
+  if (paths.length === 0) return {};
+  const supabase = await createClient();
+  const { data } = await supabase.storage.from("comprobantes").createSignedUrls(paths, 3600);
+  return Object.fromEntries(
+    (data ?? []).flatMap((d) => (d.signedUrl && d.path ? [[d.path, d.signedUrl] as [string, string]] : [])),
+  );
 }

@@ -1,4 +1,5 @@
 import { BotonRecordatorio } from "@/components/avisos-ui";
+import { SubirComprobante } from "@/components/comprobantes-ui";
 import { AccionesPago, PagoForm } from "@/components/pagos-controles";
 import { EtiquetaCuenta } from "@/components/etiqueta-cuenta";
 import { Alerta, Tarjeta } from "@/components/ui";
@@ -13,11 +14,13 @@ export function PanelPagos({
   miembros,
   yoId,
   esAdmin,
+  urls,
 }: {
   pedido: Pedido;
   miembros: Miembro[];
   yoId: string;
   esAdmin: boolean;
+  urls: Record<string, string>;
 }) {
   if (pedido.estado === "abierto") {
     return <Alerta tipo="aviso">Los pagos se cargan cuando el pedido se cierra y las cuentas quedan definidas.</Alerta>;
@@ -124,6 +127,19 @@ export function PanelPagos({
                       </p>
                     </div>
                   </div>
+                  {pedido.attachments.filter((a) => a.payment_id === p.id).map((a) =>
+                    urls[a.path] ? (
+                      <a key={a.id} href={urls[a.path]} target="_blank" rel="noopener noreferrer" className="mt-1 mr-3 inline-block text-sm text-emerald-800 underline">
+                        📎 Ver comprobante
+                      </a>
+                    ) : null,
+                  )}
+                  {abiertoAPagos && (esMio || puedeGestionar) && (
+                    <details className="mt-1">
+                      <summary className="min-h-8 cursor-pointer py-1 text-sm font-medium text-emerald-800">Adjuntar comprobante</summary>
+                      <div className="mt-2"><SubirComprobante orderId={pedido.id} paymentId={p.id} compacto /></div>
+                    </details>
+                  )}
                   {(puedeConfirmar || puedeEliminar) && (
                     <AccionesPago orderId={pedido.id} paymentId={p.id} puedeConfirmar={puedeConfirmar} puedeEliminar={puedeEliminar} />
                   )}

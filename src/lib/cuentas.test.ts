@@ -29,6 +29,7 @@ function pedido(p: Partial<Pedido> & { id: string; cobra: string; compras: Recor
     ],
     extra_costs: [],
     payments: p.payments ?? [],
+    attachments: [],
   };
 }
 const pagoDe = (order_id: string, user_id: string, monto: number, estado: Pago["estado"]): Pago => ({

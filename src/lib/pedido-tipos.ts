@@ -70,6 +70,18 @@ export interface Pago {
   created_at: string;
 }
 
+export interface Adjunto {
+  id: string;
+  order_id: string;
+  payment_id: string | null;
+  path: string;
+  nombre: string;
+  mime: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
+  bytes: number;
+  subido_por: string;
+  created_at: string;
+}
+
 export interface Pedido {
   id: string;
   titulo: string;
@@ -87,6 +99,7 @@ export interface Pedido {
   order_items: Item[];
   extra_costs: Extra[];
   payments: Pago[];
+  attachments: Adjunto[];
 }
 
 export type Cuentas = { ok: true; res: OrderCalcResult } | { ok: false; error: string };

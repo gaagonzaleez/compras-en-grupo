@@ -14,9 +14,11 @@ import {
   fechaCorta,
   listarMiembros,
   nombreDe,
+  urlsFirmadas,
   type Miembro,
   type Pedido,
 } from "@/lib/pedidos";
+import { BotonEliminarComprobante, SubirComprobante } from "@/components/comprobantes-ui";
 import { PanelPagos } from "@/components/panel-pagos";
 import { EtiquetaCuenta } from "@/components/etiqueta-cuenta";
 import { estadoDeCuenta } from "@/lib/calc";
@@ -29,6 +31,7 @@ const TABS = [
   { id: "productos", etiqueta: "Productos" },
   { id: "cuentas", etiqueta: "Cuentas" },
   { id: "cobro", etiqueta: "Cobro y entrega" },
+  { id: "comprobantes", etiqueta: "Comprobantes" },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
@@ -56,6 +59,7 @@ export default async function PedidoPage({
     extras: esAdmin || (esOrganizador && ["abierto", "cerrado", "comprado"].includes(pedido.estado)),
   };
 
+  const urls = tab === "comprobantes" || tab === "cobro" ? await urlsFirmadas(pedido.attachments.map((a) => a.path)) : {};
   const cuentas = cuentasDelPedido(pedido);
   const misCuentas = cuentas.ok ? cuentas.res.personas.find((p) => p.userId === perfil.id) : undefined;
 
@@ -94,7 +98,8 @@ export default async function PedidoPage({
       {tab === "cuentas" && (
         <Cuentas pedido={pedido} miembros={miembros} cuentas={cuentas} editar={editar} permisos={permisos} />
       )}
-      {tab === "cobro" && <Cobro pedido={pedido} miembros={miembros} yoId={perfil.id} esAdmin={esAdmin} />}
+      {tab === "cobro" && <Cobro pedido={pedido} miembros={miembros} yoId={perfil.id} esAdmin={esAdmin} urls={urls} />}
+      {tab === "comprobantes" && <Comprobantes pedido={pedido} miembros={miembros} yoId={perfil.id} esAdmin={esAdmin} urls={urls} />}
     </div>
   );
 }
@@ -175,6 +180,17 @@ function Resumen({
           <dd>{pedido.modo_reparto === "por_cantidad" ? "Cada uno paga lo que compra" : "Todo en partes iguales"}</dd>
           {pedido.notas && (<><dt className="text-stone-500">Notas</dt><dd className="whitespace-pre-line">{pedido.notas}</dd></>)}
         </dl>
+      </Tarjeta>
+
+      <Tarjeta>
+        <h2 className="mb-2 font-bold">Compartir / descargar</h2>
+        <div className="grid grid-cols-3 gap-2 text-center text-sm font-semibold">
+          {(["pdf", "xlsx", "csv"] as const).map((f) => (
+            <a key={f} href={`/pedidos/${pedido.id}/exportar?formato=${f}`} className="flex min-h-12 items-center justify-center rounded-xl bg-stone-100 text-emerald-900 hover:bg-stone-200">
+              {f === "xlsx" ? "Excel" : f.toUpperCase()}
+            </a>
+          ))}
+        </div>
       </Tarjeta>
 
       {permisos.cambiarEstado || permisos.editar ? (
@@ -434,11 +450,13 @@ function Cobro({
   miembros,
   yoId,
   esAdmin,
+  urls,
 }: {
   pedido: Pedido;
   miembros: Miembro[];
   yoId: string;
   esAdmin: boolean;
+  urls: Record<string, string>;
 }) {
   const cobra = miembros.find((m) => m.id === pedido.cobra_user_id);
   const recibe = miembros.find((m) => m.id === pedido.recibe_user_id);
@@ -446,7 +464,72 @@ function Cobro({
     <div className="space-y-4">
       <Contacto titulo="Quién recibe el dinero" m={cobra} />
       <Contacto titulo="Quién recibe el pedido" m={recibe} />
-      <PanelPagos pedido={pedido} miembros={miembros} yoId={yoId} esAdmin={esAdmin} />
+      <PanelPagos pedido={pedido} miembros={miembros} yoId={yoId} esAdmin={esAdmin} urls={urls} />
+    </div>
+  );
+}
+
+function Comprobantes({
+  pedido,
+  miembros,
+  yoId,
+  esAdmin,
+  urls,
+}: {
+  pedido: Pedido;
+  miembros: Miembro[];
+  yoId: string;
+  esAdmin: boolean;
+  urls: Record<string, string>;
+}) {
+  const puedeSubir =
+    esAdmin ||
+    [pedido.organizador_id, pedido.cobra_user_id, pedido.recibe_user_id].includes(yoId) ||
+    pedido.order_items.some((i) => i.allocations.some((a) => a.user_id === yoId));
+  const delPedido = pedido.attachments.filter((a) => !a.payment_id);
+  const dePagos = pedido.attachments.filter((a) => a.payment_id);
+
+  const lista = (adjuntos: Pedido["attachments"]) => (
+    <ul className="grid grid-cols-2 gap-3">
+      {adjuntos.map((a) => {
+        const url = urls[a.path];
+        const puedeBorrar = esAdmin || a.subido_por === yoId || pedido.organizador_id === yoId;
+        return (
+          <li key={a.id} className="space-y-1 rounded-xl bg-stone-50 p-2 ring-1 ring-stone-200">
+            {url ? (
+              <a href={url} target="_blank" rel="noopener noreferrer" aria-label={`Abrir ${a.nombre}`}>
+                {a.mime === "application/pdf" ? (
+                  <span className="flex h-28 items-center justify-center rounded-lg bg-white text-4xl">📄</span>
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={url} alt={a.nombre} className="h-28 w-full rounded-lg object-cover" />
+                )}
+              </a>
+            ) : (
+              <span className="flex h-28 items-center justify-center rounded-lg bg-white text-sm text-stone-500">No disponible</span>
+            )}
+            <p className="truncate text-xs text-stone-600">{a.nombre}</p>
+            <p className="truncate text-xs text-stone-500">{nombreDe(miembros, a.subido_por)}</p>
+            {puedeBorrar && <BotonEliminarComprobante id={a.id} />}
+          </li>
+        );
+      })}
+    </ul>
+  );
+
+  return (
+    <div className="space-y-4">
+      <Tarjeta className="space-y-3">
+        <h2 className="font-bold">Factura y comprobantes del pedido</h2>
+        {delPedido.length === 0 ? <p className="text-sm text-stone-600">Todavía no hay fotos ni archivos.</p> : lista(delPedido)}
+        {puedeSubir ? <SubirComprobante orderId={pedido.id} /> : <p className="text-xs text-stone-500">Solo quienes participan del pedido pueden subir comprobantes.</p>}
+      </Tarjeta>
+      {dePagos.length > 0 && (
+        <Tarjeta className="space-y-3">
+          <h2 className="font-bold">Comprobantes de pagos</h2>
+          {lista(dePagos)}
+        </Tarjeta>
+      )}
     </div>
   );
 }

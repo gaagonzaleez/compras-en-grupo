@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { Titulo } from "@/components/ui";
 import { FormularioPedido } from "../../formulario-pedido";
-import type { ItemForm } from "@/lib/pedido-form";
+import { RETIRO_EXTERNO, type ItemForm } from "@/lib/pedido-form";
 import type { ExtraForm } from "@/components/extras-editor";
 import { cargarPedido, listarMiembros, proveedoresUsados } from "@/lib/pedidos";
 import { requirePerfil } from "@/lib/session";
@@ -60,7 +60,9 @@ export default async function EditarPedidoPage({ params }: { params: Promise<{ i
           notas: pedido.notas ?? "",
           modoReparto: pedido.modo_reparto,
           cobraId: pedido.cobra_user_id,
-          recibeId: pedido.recibe_user_id,
+          recibeId: pedido.recibe_user_id ?? RETIRO_EXTERNO,
+          retiroLugar: pedido.retiro_lugar ?? "",
+          retiroDireccion: pedido.retiro_direccion ?? "",
           items,
           extras,
         }}

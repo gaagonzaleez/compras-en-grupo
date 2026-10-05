@@ -4,6 +4,8 @@ import type { ExtraForm } from "@/components/extras-editor";
 let contador = 0;
 export const nuevaClave = () => `k${Date.now().toString(36)}${contador++}`;
 
+export const RETIRO_EXTERNO = "externo";
+
 export interface ItemForm {
   key: string;
   id: string | null;
@@ -25,7 +27,10 @@ export interface DatosPedidoForm {
   notas: string;
   modoReparto: "por_cantidad" | "partes_iguales";
   cobraId: string;
+  /** id de un miembro, o RETIRO_EXTERNO si se retira en un negocio que no está en la app. */
   recibeId: string;
+  retiroLugar: string;
+  retiroDireccion: string;
   items: ItemForm[];
   extras: ExtraForm[];
 }

@@ -473,10 +473,30 @@ function Cobro({
 }) {
   const cobra = miembros.find((m) => m.id === pedido.cobra_user_id);
   const recibe = miembros.find((m) => m.id === pedido.recibe_user_id);
+  const hayExterno = !pedido.recibe_user_id && pedido.retiro_lugar;
   return (
     <div className="space-y-4">
       <Contacto titulo="Quién recibe el dinero" m={cobra} />
       <Contacto titulo="Quién recibe el pedido" m={recibe} />
+      {hayExterno && (
+        <Tarjeta className="space-y-1">
+          <h2 className="font-bold">Dónde se retira el pedido</h2>
+          <p className="text-lg font-semibold text-emerald-900">{pedido.retiro_lugar}</p>
+          {pedido.retiro_direccion && (
+            <p className="text-sm text-stone-700">
+              📍{" "}
+              <a
+                className="text-emerald-800 underline"
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pedido.retiro_direccion)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {pedido.retiro_direccion}
+              </a>
+            </p>
+          )}
+        </Tarjeta>
+      )}
       <PanelPagos pedido={pedido} miembros={miembros} yoId={yoId} esAdmin={esAdmin} urls={urls} />
     </div>
   );

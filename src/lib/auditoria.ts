@@ -77,8 +77,17 @@ export function describirCambio(f: FilaAuditoria, miembros: Miembro[]): string {
       if (txt(a, "estado") !== txt(d, "estado")) return `Estado del pedido: ${estado(txt(a, "estado"))} → ${estado(txt(d, "estado"))}`;
       if (txt(a, "cobra_user_id") !== txt(d, "cobra_user_id"))
         return `Quien recibe el dinero pasó de ${nombreDe(miembros, txt(a, "cobra_user_id"))} a ${nombreDe(miembros, txt(d, "cobra_user_id"))}`;
-      if (txt(a, "recibe_user_id") !== txt(d, "recibe_user_id"))
-        return `Quien recibe el pedido pasó de ${nombreDe(miembros, txt(a, "recibe_user_id"))} a ${nombreDe(miembros, txt(d, "recibe_user_id"))}`;
+      if (
+        txt(a, "recibe_user_id") !== txt(d, "recibe_user_id") ||
+        txt(a, "retiro_lugar") !== txt(d, "retiro_lugar") ||
+        txt(a, "retiro_direccion") !== txt(d, "retiro_direccion")
+      ) {
+        const lugar = (x: typeof a) =>
+          txt(x, "recibe_user_id")
+            ? nombreDe(miembros, txt(x, "recibe_user_id"))
+            : [txt(x, "retiro_lugar"), txt(x, "retiro_direccion")].filter(Boolean).join(" · ") || "—";
+        return `Quien recibe el pedido pasó de ${lugar(a)} a ${lugar(d)}`;
+      }
       if (txt(a, "modo_reparto") !== txt(d, "modo_reparto")) return "Cambió la forma de repartir el pedido";
       return "Se modificaron los datos del pedido";
     }

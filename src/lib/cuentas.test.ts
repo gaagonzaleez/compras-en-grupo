@@ -16,6 +16,8 @@ function pedido(p: Partial<Pedido> & { id: string; cobra: string; compras: Recor
     organizador_id: p.cobra,
     cobra_user_id: p.cobra,
     recibe_user_id: p.cobra,
+    retiro_lugar: null,
+    retiro_direccion: null,
     estado: p.estado ?? "entregado",
     modo_reparto: "por_cantidad",
     created_at: "2026-10-01T00:00:00Z",

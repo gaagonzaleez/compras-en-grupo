@@ -91,7 +91,10 @@ export interface Pedido {
   notas: string | null;
   organizador_id: string;
   cobra_user_id: string;
-  recibe_user_id: string;
+  /** Miembro que recibe la mercadería; null si se retira en un lugar externo (retiro_lugar). */
+  recibe_user_id: string | null;
+  retiro_lugar: string | null;
+  retiro_direccion: string | null;
   estado: EstadoPedido;
   modo_reparto: RepartoPedido;
   created_at: string;
@@ -150,3 +153,12 @@ export function fechaCorta(iso: string | null): string {
 
 export const nombreDe = (miembros: Miembro[], id: string) =>
   miembros.find((m) => m.id === id)?.negocio ?? "Miembro";
+
+/** Dónde se retira el pedido: el negocio del miembro, o el lugar externo con su dirección. */
+export const lugarDeRetiro = (
+  p: Pick<Pedido, "recibe_user_id" | "retiro_lugar" | "retiro_direccion">,
+  miembros: Miembro[],
+) =>
+  p.recibe_user_id
+    ? nombreDe(miembros, p.recibe_user_id)
+    : [p.retiro_lugar, p.retiro_direccion].filter(Boolean).join(" · ") || "—";

@@ -16,7 +16,7 @@ Pensada para probar la app real (Supabase verdadero) con 3 o 4 personas antes de
 
 ## 2. Un pedido de punta a punta
 
-- [ ] A crea un pedido: título, proveedor (se autocompleta con proveedores usados), un producto (48 unidades por bulto a $1.200 → “Cada bulto cuesta $57.600”), 100 bultos disponibles, 20 para A, un flete de $50.000, y elige quién cobra y quién recibe.
+- [ ] A crea un pedido: título, proveedor (se autocompleta con proveedores usados), un producto (48 unidades por bulto a $1.200 → “Cada bulto cuesta $57.600”), 100 bultos disponibles, 20 para A, un flete de $50.000, y elige quién cobra y quién recibe (probar también “Otro lugar (no está en la app)” con nombre y dirección).
 - [ ] B y C ven el pedido en “Pedidos abiertos”, se anotan (B 15, C 65). Si se pasan del total, aparece el aviso.
 - [ ] A intenta cerrar con bultos de más → no deja. Se corrige y cierra.
 - [ ] En **Cuentas**: el flete de $50.000 entre 3 da $16.667 / $16.667 / $16.666 y el total del pedido coincide con la suma.

@@ -29,6 +29,8 @@ export default async function NuevoPedidoPage() {
           modoReparto: "por_cantidad",
           cobraId: perfil.id,
           recibeId: perfil.id,
+          retiroLugar: "",
+          retiroDireccion: "",
           items: [itemVacio()],
           extras: [],
         }}

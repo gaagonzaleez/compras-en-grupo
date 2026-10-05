@@ -1,5 +1,5 @@
 import { estadoDeCuenta, ETIQUETA_CUENTA } from "@/lib/calc";
-import { ESTADOS, cuentasDelPedido, fechaCorta, nombreDe, type Miembro, type Pedido } from "@/lib/pedido-tipos";
+import { ESTADOS, cuentasDelPedido, fechaCorta, lugarDeRetiro, nombreDe, type Miembro, type Pedido } from "@/lib/pedido-tipos";
 import type { ResumenMensual } from "@/lib/resumen";
 import { nombreDeMes } from "@/lib/resumen";
 import type { Celda } from "./csv";
@@ -53,7 +53,7 @@ export function detalleDePedido(p: Pedido, miembros: Miembro[]): DetallePedido {
       ["Entrega estimada", fechaCorta(p.fecha_entrega)],
       ["Organiza", nombreDe(miembros, p.organizador_id)],
       ["Recibe el dinero", nombreDe(miembros, p.cobra_user_id)],
-      ["Recibe el pedido", nombreDe(miembros, p.recibe_user_id)],
+      ["Recibe el pedido", lugarDeRetiro(p, miembros)],
       ["Reparto", p.modo_reparto === "por_cantidad" ? "Cada uno paga lo que compra" : "Todo en partes iguales"],
       ...(p.notas ? ([["Notas", p.notas]] as [string, string][]) : []),
     ],
@@ -104,7 +104,7 @@ export function filasDeHistorial(pedidos: Pedido[], miembros: Miembro[]): Celda[
       const c = cuentasDelPedido(p);
       return [
         p.fecha, p.titulo, p.proveedor ?? "", ESTADOS[p.estado].etiqueta,
-        nombreDe(miembros, p.organizador_id), nombreDe(miembros, p.cobra_user_id), nombreDe(miembros, p.recibe_user_id),
+        nombreDe(miembros, p.organizador_id), nombreDe(miembros, p.cobra_user_id), lugarDeRetiro(p, miembros),
         c.ok ? c.res.personas.length : "", c.ok ? c.res.totalProductos : "", c.ok ? c.res.totalExtras : "", c.ok ? c.res.total : "",
       ] as Celda[];
     }),

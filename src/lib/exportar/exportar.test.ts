@@ -13,7 +13,7 @@ const MIEMBROS = [miembro("ana", "Kiosco Ana"), miembro("beto", "Almacén Beto")
 function pedido(id: string, extra: Partial<Pedido> = {}, compras: Record<string, number> = { ana: 1, beto: 2 }): Pedido {
   return {
     id, titulo: `Pedido ${id}`, proveedor: "Distri SA", fecha: "2026-10-05", fecha_entrega: null, notas: null,
-    organizador_id: "ana", cobra_user_id: "ana", recibe_user_id: "ana", estado: "entregado", modo_reparto: "por_cantidad",
+    organizador_id: "ana", cobra_user_id: "ana", recibe_user_id: "ana", retiro_lugar: null, retiro_direccion: null, estado: "entregado", modo_reparto: "por_cantidad",
     created_at: "2026-10-05T00:00:00Z", entregado_at: null,
     order_items: [{
       id: "i" + id, order_id: id, orden: 1, producto: "Azúcar x10", precio_unitario: 100, unidades_por_bulto: 10, precio_bulto: 1000, bultos_total: null,

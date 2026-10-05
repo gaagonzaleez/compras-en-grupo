@@ -48,10 +48,16 @@ const pedidoSchema = z.object({
   fecha_entrega: z.string().default(""),
   notas: z.string().trim().default(""),
   cobra_user_id: z.uuid("Elegí quién recibe el dinero."),
-  recibe_user_id: z.uuid("Elegí quién recibe el pedido."),
+  // Un miembro, o un lugar de retiro externo (nombre obligatorio, dirección opcional).
+  recibe_user_id: z.uuid("Elegí quién recibe el pedido.").nullable(),
+  retiro_lugar: z.string().trim().default(""),
+  retiro_direccion: z.string().trim().default(""),
   modo_reparto: z.enum(["por_cantidad", "partes_iguales"]),
   items: z.array(itemSchema).min(1, "Agregá al menos un producto."),
   extras: z.array(extraSchema).default([]),
+}).refine((p) => p.recibe_user_id !== null || p.retiro_lugar !== "", {
+  message: "Poné el nombre del lugar donde se retira el pedido.",
+  path: ["retiro_lugar"],
 });
 
 function mensajeDeError(message: string): string {

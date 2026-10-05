@@ -47,6 +47,11 @@ export default async function InicioPage() {
             <p className="text-2xl font-bold text-emerald-800">{formatPesos(cuentas.totalMeDeben)}</p>
           </div>
         </div>
+        {cuentas.totalAlRetirar > 0 && (
+          <p className="mt-2 text-center text-sm font-semibold text-amber-800">
+            Se paga al retirar: {formatPesos(cuentas.totalAlRetirar)}
+          </p>
+        )}
         {(cuentas.porConfirmar.length > 0 || cuentas.debo.some((d) => d.vencida)) && (
           <p className="mt-2 text-center text-sm font-semibold text-amber-800">
             {cuentas.porConfirmar.length > 0 && `${cuentas.porConfirmar.length} pago(s) para confirmar`}

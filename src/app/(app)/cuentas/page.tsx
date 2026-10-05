@@ -6,7 +6,7 @@ import { EtiquetaCuenta } from "@/components/etiqueta-cuenta";
 import { Tarjeta, Titulo } from "@/components/ui";
 import { formatPesos } from "@/lib/calc";
 import { resumenDeCuentas, type Deuda } from "@/lib/cuentas";
-import { diasRecordatorio, listarMiembros, listarPedidos, nombreDe } from "@/lib/pedidos";
+import { diasRecordatorio, ESTADOS, listarMiembros, listarPedidos, nombreDe } from "@/lib/pedidos";
 import { requirePerfil } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Mis cuentas" };
@@ -20,7 +20,7 @@ function agrupar(deudas: Deuda[], clave: (d: Deuda) => string) {
 export default async function CuentasPage() {
   const perfil = await requirePerfil();
   const [pedidos, miembros, dias] = await Promise.all([
-    listarPedidos({ estados: ["cerrado", "comprado", "entregado"], limite: 200 }),
+    listarPedidos({ estados: ["abierto", "cerrado", "comprado", "entregado"], limite: 200 }),
     listarMiembros(),
     diasRecordatorio(),
   ]);
@@ -119,6 +119,34 @@ export default async function CuentasPage() {
               <AccionesPago orderId={p.order_id} paymentId={p.id} puedeConfirmar puedeEliminar />
             </Tarjeta>
           ))}
+        </section>
+      )}
+
+      {r.alRetirar.length > 0 && (
+        <section aria-label="Se paga al retirar" className="space-y-3">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-lg font-bold">Se paga al retirar</h2>
+            <p className="text-xl font-bold text-amber-800">{formatPesos(r.totalAlRetirar)}</p>
+          </div>
+          <Tarjeta>
+            <p className="mb-2 text-xs text-stone-500">Pedidos que se pagan en el momento, en otro lugar: no son deuda con nadie del grupo.</p>
+            <ul className="divide-y divide-stone-100">
+              {r.alRetirar.map((x) => (
+                <li key={x.pedidoId}>
+                  <Link href={`/pedidos/${x.pedidoId}`} className="flex items-start justify-between gap-3 py-2">
+                    <div>
+                      <p className="text-sm font-medium">{x.titulo}</p>
+                      <p className="text-xs text-stone-500">
+                        {ESTADOS[x.estado].etiqueta}
+                        {x.estado === "abierto" ? " · el monto puede cambiar hasta que se cierre" : ""}
+                      </p>
+                    </div>
+                    <p className="text-sm font-bold">{formatPesos(x.total)}</p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Tarjeta>
         </section>
       )}
 

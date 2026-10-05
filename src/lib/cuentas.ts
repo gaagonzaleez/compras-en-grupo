@@ -11,6 +11,14 @@ export interface Deuda extends EstadoDeCuenta {
   diasDesdeEntrega: number | null;
 }
 
+/** Lo que tengo que pagar en el momento, al retirar (pedidos donde no cobra nadie del grupo). */
+export interface PagoAlRetirar {
+  pedidoId: string;
+  titulo: string;
+  estado: Pedido["estado"];
+  total: number;
+}
+
 export interface ResumenCuentas {
   /** Lo que yo debo (pedidos donde participo y cobra otro). */
   debo: Deuda[];
@@ -20,6 +28,9 @@ export interface ResumenCuentas {
   totalMeDeben: number;
   /** Positivo: me deben más de lo que debo. */
   neto: number;
+  /** Pedidos donde participo y se paga en el momento, en otro lugar (no son deuda con nadie del grupo). */
+  alRetirar: PagoAlRetirar[];
+  totalAlRetirar: number;
   /** Pagos que otros avisaron y yo (como cobrador) tengo que confirmar. */
   porConfirmar: (Pago & { titulo: string })[];
 }
@@ -70,6 +81,13 @@ export function resumenDeCuentas(
   const debo: Deuda[] = [];
   const meDeben: Deuda[] = [];
   const porConfirmar: ResumenCuentas["porConfirmar"] = [];
+  const alRetirar: PagoAlRetirar[] = [];
+
+  for (const p of pedidos.filter((x) => x.cobra_user_id === null && x.estado !== "saldado")) {
+    const cuentas = cuentasDelPedido(p);
+    const mia = cuentas.ok ? cuentas.res.personas.find((x) => x.userId === yoId) : undefined;
+    if (mia && mia.total > 0) alRetirar.push({ pedidoId: p.id, titulo: p.titulo, estado: p.estado, total: mia.total });
+  }
 
   for (const p of pedidos.filter((x) => CON_DEUDA.has(x.estado))) {
     for (const d of deudasDelPedido(p, ahora, diasRecordatorio)) {
@@ -86,5 +104,6 @@ export function resumenDeCuentas(
 
   const totalDebo = debo.reduce((s, d) => s + d.saldo, 0);
   const totalMeDeben = meDeben.reduce((s, d) => s + d.saldo, 0);
-  return { debo, meDeben, totalDebo, totalMeDeben, neto: totalMeDeben - totalDebo, porConfirmar };
+  const totalAlRetirar = alRetirar.reduce((s, x) => s + x.total, 0);
+  return { debo, meDeben, totalDebo, totalMeDeben, neto: totalMeDeben - totalDebo, alRetirar, totalAlRetirar, porConfirmar };
 }

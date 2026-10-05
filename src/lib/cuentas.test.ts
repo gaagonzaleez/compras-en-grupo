@@ -86,4 +86,15 @@ describe("pedido que se paga en el momento, en otro lugar", () => {
     expect(r.meDeben).toEqual([]);
     expect(r.porConfirmar).toEqual([]);
   });
+  it("lo que pago al retirar: pedidos sin cobrador donde participo, aun abiertos, hasta que se saldan", () => {
+    const abierto = pedido({ id: "a", cobra: null, compras: { yo: 2, ana: 1 }, estado: "abierto" });
+    const entregado = pedido({ id: "b", cobra: null, compras: { yo: 1 } });
+    const saldado = pedido({ id: "c", cobra: null, compras: { yo: 1 }, estado: "saldado" });
+    const ajeno = pedido({ id: "d", cobra: null, compras: { ana: 1 } });
+    const conCobrador = pedido({ id: "e", cobra: "ana", compras: { yo: 1 } });
+    const r = resumenDeCuentas([abierto, entregado, saldado, ajeno, conCobrador], "yo", AHORA, 7);
+    expect(r.alRetirar.map((x) => [x.pedidoId, x.total])).toEqual([["a", 2000], ["b", 1000]]);
+    expect(r.totalAlRetirar).toBe(3000);
+    expect(r.debo.map((d) => d.pedidoId)).toEqual(["e"]); // solo el que tiene cobrador es deuda
+  });
 });

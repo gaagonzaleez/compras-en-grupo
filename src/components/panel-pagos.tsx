@@ -25,15 +25,19 @@ export function PanelPagos({
   if (pedido.estado === "abierto") {
     return <Alerta tipo="aviso">Los pagos se cargan cuando el pedido se cierra y las cuentas quedan definidas.</Alerta>;
   }
+  const cobraId = pedido.cobra_user_id;
+  if (cobraId === null) {
+    return <Alerta tipo="aviso">Este pedido se paga en el momento, en otro lugar: nadie del grupo cobra y no se cargan pagos en la app.</Alerta>;
+  }
   const cuentas = cuentasDelPedido(pedido);
   if (!cuentas.ok) return <Alerta tipo="aviso">{cuentas.error}</Alerta>;
 
   const pagosInput = pedido.payments.map((p) => ({ userId: p.user_id, monto: p.monto, estado: p.estado }));
   const filas = cuentas.res.personas.map((p) => ({
     persona: p,
-    cuenta: estadoDeCuenta({ userId: p.userId, total: p.total, cobraId: pedido.cobra_user_id, pagos: pagosInput }),
+    cuenta: estadoDeCuenta({ userId: p.userId, total: p.total, cobraId, pagos: pagosInput }),
   }));
-  const soyCobrador = pedido.cobra_user_id === yoId;
+  const soyCobrador = cobraId === yoId;
   const puedeGestionar = soyCobrador || esAdmin;
   const abiertoAPagos = pedido.estado !== "saldado";
   const mia = filas.find((f) => f.persona.userId === yoId);
@@ -59,7 +63,7 @@ export function PanelPagos({
             <details className="rounded-xl bg-stone-50 p-3 ring-1 ring-stone-200">
               <summary className="min-h-10 cursor-pointer py-2 font-semibold text-emerald-800">Ya pagué</summary>
               <p className="mb-3 text-sm text-stone-600">
-                Le pagaste a <b>{nombreDe(miembros, pedido.cobra_user_id)}</b>. Cuando lo confirme, se descuenta de tu deuda.
+                Le pagaste a <b>{nombreDe(miembros, cobraId)}</b>. Cuando lo confirme, se descuenta de tu deuda.
               </p>
               <PagoForm orderId={pedido.id} userId={null} saldo={mia.cuenta.saldo} hoy={hoy} textoBoton="Avisar que pagué" />
             </details>

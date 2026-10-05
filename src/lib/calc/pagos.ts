@@ -27,7 +27,8 @@ export interface EstadoDeCuenta {
 export function estadoDeCuenta(args: {
   userId: string;
   total: number;
-  cobraId: string;
+  /** null = se paga en otro lugar, nadie del grupo cobra. */
+  cobraId: string | null;
   pagos: PagoInput[];
 }): EstadoDeCuenta {
   const { userId, total, cobraId, pagos } = args;
@@ -47,7 +48,7 @@ export function estadoDeCuenta(args: {
 /** ¿Todos los participantes saldaron su parte? (Quien cobra cuenta como pagado.) */
 export function todosPagaron(
   personas: { userId: string; total: number }[],
-  cobraId: string,
+  cobraId: string | null,
   pagos: PagoInput[],
 ): boolean {
   return personas.every((p) => estadoDeCuenta({ userId: p.userId, total: p.total, cobraId, pagos }).estado === "pagado");

@@ -15,7 +15,7 @@ export const normalizar = (s: string) => s.normalize("NFD").replace(/\p{Diacriti
 export function participantes(p: Pedido): Set<string> {
   return new Set([
     p.organizador_id,
-    p.cobra_user_id,
+    ...(p.cobra_user_id ? [p.cobra_user_id] : []),
     ...(p.recibe_user_id ? [p.recibe_user_id] : []),
     ...p.order_items.flatMap((i) => i.allocations.map((a) => a.user_id)),
   ]);

@@ -21,7 +21,7 @@ Para probarla a mano: [`docs/PRUEBA_MANUAL.md`](docs/PRUEBA_MANUAL.md).
 ## Puesta en marcha
 
 1. **Supabase** (gratis alcanza para empezar): creá un proyecto. En *SQL Editor* ejecutá, **en orden**, los archivos de `supabase/migrations/`:
-   `..._init.sql` → `..._pagos.sql` → `..._avisos.sql` → `..._comprobantes.sql` → `..._auditoria.sql` → `..._retiro_externo.sql`.
+   `..._init.sql` → `..._pagos.sql` → `..._avisos.sql` → `..._comprobantes.sql` → `..._auditoria.sql` → `..._retiro_externo.sql` → `..._cobro_externo.sql`.
 2. *Authentication → Providers → Email*: **desactivá “Confirm email”** (es un grupo cerrado por invitación y quienes entran con celular usan un email técnico que no recibe mails). En *URL Configuration* poné la URL de la app y agregá `<url>/auth/callback` en Redirect URLs.
    Para que lleguen los mails de “olvidé mi contraseña” configurá un SMTP propio (*Auth → SMTP Settings*): el de Supabase tiene un límite muy bajo.
 3. `cp .env.example .env.local` y completalo (cada variable está explicada ahí):

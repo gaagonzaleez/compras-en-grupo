@@ -122,3 +122,18 @@ describe("detalleDePedido", () => {
     expect(planas.some((f) => f[0] === "Pagos")).toBe(true);
   });
 });
+
+describe("pedido que se retira y se paga en otro lugar", () => {
+  const p = pedido("7", {
+    cobra_user_id: null, recibe_user_id: null, retiro_lugar: "Distribuidora Norte", retiro_direccion: "Av. Siempreviva 742",
+  });
+  const d = detalleDePedido(p, MIEMBROS);
+  it("informa el lugar de retiro y que se paga en el momento", () => {
+    expect(d.meta).toContainEqual(["Recibe el dinero", "Se paga en el momento, en otro lugar"]);
+    expect(d.meta).toContainEqual(["Recibe el pedido", "Distribuidora Norte · Av. Siempreviva 742"]);
+  });
+  it("no muestra pagado ni saldo (la app no registra pagos)", () => {
+    expect(d.cuentas.filas[0]).toEqual(["Kiosco Ana", 1, 1000, 0, 1000, "", "", "Se paga en el momento"]);
+    expect(d.cuentas.totales).toEqual(["Total", 3, 3000, 0, 3000, "", "", ""]);
+  });
+});

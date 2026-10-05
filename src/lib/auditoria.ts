@@ -28,6 +28,7 @@ export function quienHizo(f: FilaAuditoria, miembros: Miembro[]): string {
 export function describirCambio(f: FilaAuditoria, miembros: Miembro[]): string {
   const a = f.antes;
   const d = f.despues;
+  const cobrador = (x: D) => (txt(x, "cobra_user_id") ? nombreDe(miembros, txt(x, "cobra_user_id")) : "otro lugar (se paga en el momento)");
   const ref = d ?? a;
   const persona = (x: D) => (x && typeof x.user_id === "string" ? nombreDe(miembros, x.user_id as string) : "alguien");
 
@@ -76,7 +77,7 @@ export function describirCambio(f: FilaAuditoria, miembros: Miembro[]): string {
       if (f.accion === "baja") return `Se eliminó el pedido (estaba ${estado(txt(a, "estado")).toLowerCase()})`;
       if (txt(a, "estado") !== txt(d, "estado")) return `Estado del pedido: ${estado(txt(a, "estado"))} → ${estado(txt(d, "estado"))}`;
       if (txt(a, "cobra_user_id") !== txt(d, "cobra_user_id"))
-        return `Quien recibe el dinero pasó de ${nombreDe(miembros, txt(a, "cobra_user_id"))} a ${nombreDe(miembros, txt(d, "cobra_user_id"))}`;
+        return `Quien recibe el dinero pasó de ${cobrador(a)} a ${cobrador(d)}`;
       if (
         txt(a, "recibe_user_id") !== txt(d, "recibe_user_id") ||
         txt(a, "retiro_lugar") !== txt(d, "retiro_lugar") ||

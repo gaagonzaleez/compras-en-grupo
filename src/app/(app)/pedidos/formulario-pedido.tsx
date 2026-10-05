@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { guardarPedido } from "./actions";
 import { Alerta, Area, Boton, Campo, Seleccion, Tarjeta } from "@/components/ui";
 import { ExtrasEditor, extrasAPayload, type Participante } from "@/components/extras-editor";
-import { itemVacio, RETIRO_EXTERNO, type DatosPedidoForm, type ItemForm } from "@/lib/pedido-form";
+import { itemVacio, OTRO_LUGAR, type DatosPedidoForm, type ItemForm } from "@/lib/pedido-form";
 import { aEntero, aEnteroOCero } from "@/lib/numeros";
 import { formatPesos } from "@/lib/calc";
 
@@ -48,7 +48,7 @@ function validar(paso: number, d: DatosPedidoForm): string | null {
   }
   if (paso === 3) {
     if (!d.cobraId || !d.recibeId) return "Elegí quién recibe el dinero y quién recibe el pedido.";
-    if (d.recibeId === RETIRO_EXTERNO && !d.retiroLugar.trim()) return "Poné el nombre del lugar donde se retira el pedido.";
+    if (d.recibeId === OTRO_LUGAR && !d.retiroLugar.trim()) return "Poné el nombre del lugar donde se retira el pedido.";
   }
   return null;
 }
@@ -95,14 +95,14 @@ export function FormularioPedido({
         return setError(e);
       }
     }
-    const externo = d.recibeId === RETIRO_EXTERNO;
+    const externo = d.recibeId === OTRO_LUGAR;
     const payload = {
       titulo: d.titulo,
       proveedor: d.proveedor,
       fecha: d.fecha,
       fecha_entrega: d.fechaEntrega,
       notas: d.notas,
-      cobra_user_id: d.cobraId,
+      cobra_user_id: d.cobraId === OTRO_LUGAR ? null : d.cobraId,
       recibe_user_id: externo ? null : d.recibeId,
       retiro_lugar: externo ? d.retiroLugar : "",
       retiro_direccion: externo ? d.retiroDireccion : "",
@@ -128,7 +128,7 @@ export function FormularioPedido({
   };
 
   const nombre = (id: string) => miembros.find((m) => m.id === id)?.negocio ?? "—";
-  const externo = d.recibeId === RETIRO_EXTERNO;
+  const externo = d.recibeId === OTRO_LUGAR;
   const recibe = externo ? [d.retiroLugar.trim(), d.retiroDireccion.trim()].filter(Boolean).join(" · ") || "—" : nombre(d.recibeId);
 
   return (
@@ -274,13 +274,18 @@ export function FormularioPedido({
             {miembros.map((m) => (
               <option key={m.id} value={m.id}>{m.negocio}</option>
             ))}
+            <option value={OTRO_LUGAR}>Otro lugar (se paga en el momento, nadie del grupo cobra)</option>
           </Seleccion>
-          <p className="-mt-2 text-xs text-stone-500">A esta persona se le paga: es quien adelantó la compra.</p>
+          <p className="-mt-2 text-xs text-stone-500">
+            {d.cobraId === OTRO_LUGAR
+              ? "Se paga en el momento, al retirar: nadie del grupo cobra, así que la app no registra pagos ni deudas."
+              : "A esta persona se le paga: es quien adelantó la compra."}
+          </p>
           <Seleccion label="¿Quién recibe el pedido?" value={d.recibeId} onChange={(e) => set("recibeId", e.target.value)}>
             {miembros.map((m) => (
               <option key={m.id} value={m.id}>{m.negocio}</option>
             ))}
-            <option value={RETIRO_EXTERNO}>Otro lugar (no está en la app)</option>
+            <option value={OTRO_LUGAR}>Otro lugar (no está en la app)</option>
           </Seleccion>
           <p className="-mt-2 text-xs text-stone-500">
             Es donde llega la mercadería. Puede ser otra persona o un lugar de retiro que no esté registrado.
@@ -311,7 +316,7 @@ export function FormularioPedido({
           <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
             <dt className="text-stone-500">Proveedor</dt><dd>{d.proveedor || "—"}</dd>
             <dt className="text-stone-500">Entrega</dt><dd>{d.fechaEntrega || "—"}</dd>
-            <dt className="text-stone-500">Cobra</dt><dd>{nombre(d.cobraId)}</dd>
+            <dt className="text-stone-500">Cobra</dt><dd>{d.cobraId === OTRO_LUGAR ? "Se paga en el momento, en otro lugar" : nombre(d.cobraId)}</dd>
             <dt className="text-stone-500">Recibe</dt><dd>{recibe}</dd>
             <dt className="text-stone-500">Reparto</dt>
             <dd>{d.modoReparto === "por_cantidad" ? "Cada uno paga lo que compra" : "Todo en partes iguales"}</dd>

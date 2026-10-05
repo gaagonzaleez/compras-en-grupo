@@ -30,7 +30,7 @@ export async function avisarCambioDeEstado(args: { pedido: Pedido; nuevo: Estado
   const participantes = cuentas.ok
     ? cuentas.res.personas
     : [...new Set(pedido.order_items.flatMap((i) => i.allocations.map((a) => a.user_id)))].map((userId) => ({ userId, total: 0 }));
-  const cobra = nombreDe(miembros, pedido.cobra_user_id);
+  const cobra = pedido.cobra_user_id ? nombreDe(miembros, pedido.cobra_user_id) : null;
 
   for (const p of participantes.filter((x) => x.userId !== actorId)) {
     if (nuevo === "cerrado" && cuentas.ok) {
@@ -44,6 +44,7 @@ export async function avisarCambioDeEstado(args: { pedido: Pedido; nuevo: Estado
 }
 
 export async function avisarPagoAvisado(args: { pedido: Pedido; pagadorId: string; monto: number; miembros: Miembro[] }) {
+  if (!args.pedido.cobra_user_id) return;
   await notificar(
     [args.pedido.cobra_user_id],
     avisoPagoAvisado({
@@ -56,6 +57,7 @@ export async function avisarPagoAvisado(args: { pedido: Pedido; pagadorId: strin
 }
 
 export async function avisarPagoConfirmado(args: { pedido: Pedido; pagadorId: string; monto: number; miembros: Miembro[] }) {
+  if (!args.pedido.cobra_user_id) return;
   await notificar(
     [args.pagadorId],
     avisoPagoConfirmado({
@@ -87,6 +89,7 @@ export async function enviarRecordatorioDeuda(args: {
   if (!hayServiceRole()) return { ok: false, motivo: "Los avisos no están configurados todavía." };
 
   const deuda = deudasDelPedido(pedido, ahora, 0).find((d) => d.deudorId === deudorId);
+  if (!pedido.cobra_user_id) return { ok: false, motivo: "Este pedido se paga en el momento: no hay deudas para recordar." };
   if (!deuda || deuda.esCobrador || deuda.saldo <= 0) return { ok: false, motivo: "Esa persona no tiene saldo pendiente." };
 
   const db = createAdminClient();

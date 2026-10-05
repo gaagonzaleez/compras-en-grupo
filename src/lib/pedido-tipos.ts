@@ -90,7 +90,8 @@ export interface Pedido {
   fecha_entrega: string | null;
   notas: string | null;
   organizador_id: string;
-  cobra_user_id: string;
+  /** Miembro que recibe el dinero; null si se paga en el momento, en otro lugar (nadie del grupo cobra). */
+  cobra_user_id: string | null;
   /** Miembro que recibe la mercadería; null si se retira en un lugar externo (retiro_lugar). */
   recibe_user_id: string | null;
   retiro_lugar: string | null;
@@ -153,6 +154,10 @@ export function fechaCorta(iso: string | null): string {
 
 export const nombreDe = (miembros: Miembro[], id: string) =>
   miembros.find((m) => m.id === id)?.negocio ?? "Miembro";
+
+/** A quién se le paga: el negocio del miembro, o "en el momento" si no cobra nadie del grupo. */
+export const quienCobra = (p: Pick<Pedido, "cobra_user_id">, miembros: Miembro[]) =>
+  p.cobra_user_id ? nombreDe(miembros, p.cobra_user_id) : "Se paga en el momento, en otro lugar";
 
 /** Dónde se retira el pedido: el negocio del miembro, o el lugar externo con su dirección. */
 export const lugarDeRetiro = (

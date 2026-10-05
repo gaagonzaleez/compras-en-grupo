@@ -4,7 +4,8 @@ import type { ExtraForm } from "@/components/extras-editor";
 let contador = 0;
 export const nuevaClave = () => `k${Date.now().toString(36)}${contador++}`;
 
-export const RETIRO_EXTERNO = "externo";
+/** Valor de "Otro lugar" en quién cobra / quién recibe: no es un miembro del grupo. */
+export const OTRO_LUGAR = "externo";
 
 export interface ItemForm {
   key: string;
@@ -26,8 +27,9 @@ export interface DatosPedidoForm {
   fechaEntrega: string;
   notas: string;
   modoReparto: "por_cantidad" | "partes_iguales";
+  /** id de un miembro, o OTRO_LUGAR si se paga en el momento, fuera de la app (nadie del grupo cobra). */
   cobraId: string;
-  /** id de un miembro, o RETIRO_EXTERNO si se retira en un negocio que no está en la app. */
+  /** id de un miembro, o OTRO_LUGAR si se retira en un negocio que no está en la app. */
   recibeId: string;
   retiroLugar: string;
   retiroDireccion: string;

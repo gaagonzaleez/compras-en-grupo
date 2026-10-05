@@ -38,10 +38,11 @@ export const avisoPedidoNuevo = (a: { pedidoId: string; titulo: string; organiza
   url: ruta(a.pedidoId),
 });
 
-export const avisoPedidoCerrado = (a: { pedidoId: string; titulo: string; total: number; cobra: string }): Aviso => ({
+/** `cobra` null = se paga en el momento, en otro lugar. */
+export const avisoPedidoCerrado = (a: { pedidoId: string; titulo: string; total: number; cobra: string | null }): Aviso => ({
   tipo: "pedido_cerrado",
   titulo: `Pedido cerrado: ${a.titulo}`,
-  cuerpo: `Tu cuenta es ${formatPesos(a.total)}. Se le paga a ${a.cobra}.`,
+  cuerpo: `Tu cuenta es ${formatPesos(a.total)}. ${a.cobra ? `Se le paga a ${a.cobra}.` : "Se paga en el momento, al retirar."}`,
   url: ruta(a.pedidoId, "cuentas"),
 });
 
@@ -52,10 +53,10 @@ export const avisoPedidoReabierto = (a: { pedidoId: string; titulo: string }): A
   url: ruta(a.pedidoId, "productos"),
 });
 
-export const avisoPedidoEntregado = (a: { pedidoId: string; titulo: string; total: number; cobra: string }): Aviso => ({
+export const avisoPedidoEntregado = (a: { pedidoId: string; titulo: string; total: number; cobra: string | null }): Aviso => ({
   tipo: "pedido_entregado",
   titulo: `Pedido entregado: ${a.titulo}`,
-  cuerpo: `Ya llegó la mercadería. Tu cuenta: ${formatPesos(a.total)} para ${a.cobra}.`,
+  cuerpo: `Ya llegó la mercadería. Tu cuenta: ${formatPesos(a.total)}${a.cobra ? ` para ${a.cobra}` : ", se paga en el momento"}.`,
   url: ruta(a.pedidoId, "cobro"),
 });
 

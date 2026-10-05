@@ -4,7 +4,7 @@ import type { Pago, Pedido } from "./pedido-tipos";
 
 const AHORA = new Date("2026-10-20T12:00:00Z");
 
-function pedido(p: Partial<Pedido> & { id: string; cobra: string; compras: Record<string, number> }): Pedido {
+function pedido(p: Partial<Pedido> & { id: string; cobra: string | null; compras: Record<string, number> }): Pedido {
   const item = "item-" + p.id;
   return {
     id: p.id,
@@ -13,9 +13,9 @@ function pedido(p: Partial<Pedido> & { id: string; cobra: string; compras: Recor
     fecha: "2026-10-01",
     fecha_entrega: null,
     notas: null,
-    organizador_id: p.cobra,
+    organizador_id: p.cobra ?? "org",
     cobra_user_id: p.cobra,
-    recibe_user_id: p.cobra,
+    recibe_user_id: p.cobra ?? "org",
     retiro_lugar: null,
     retiro_direccion: null,
     estado: p.estado ?? "entregado",
@@ -75,5 +75,15 @@ describe("resumenDeCuentas", () => {
   it("con 0 días de aviso, vence apenas se entrega", () => {
     const r0 = resumenDeCuentas(pedidos, "yo", AHORA, 0);
     expect(r0.meDeben[0].vencida).toBe(true);
+  });
+});
+
+describe("pedido que se paga en el momento, en otro lugar", () => {
+  it("no genera deudas entre miembros ni pagos para confirmar", () => {
+    const sinCobrador = pedido({ id: "p9", cobra: null, compras: { yo: 2, ana: 1 }, entregado_at: "2026-10-01T00:00:00Z" });
+    const r = resumenDeCuentas([sinCobrador], "yo", AHORA, 7);
+    expect(r.debo).toEqual([]);
+    expect(r.meDeben).toEqual([]);
+    expect(r.porConfirmar).toEqual([]);
   });
 });

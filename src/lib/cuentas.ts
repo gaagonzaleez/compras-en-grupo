@@ -36,6 +36,9 @@ export function diasDesde(iso: string | null, ahora: Date): number | null {
 
 /** Deuda de cada participante de un pedido (o [] si las cuentas no se pueden calcular). */
 export function deudasDelPedido(p: Pedido, ahora: Date, diasRecordatorio: number): Deuda[] {
+  // Si se paga en otro lugar no hay a quién deberle: no hay deudas entre miembros.
+  const cobraId = p.cobra_user_id;
+  if (cobraId === null) return [];
   const cuentas = cuentasDelPedido(p);
   if (!cuentas.ok) return [];
   const dias = diasDesde(p.entregado_at, ahora);
@@ -43,14 +46,14 @@ export function deudasDelPedido(p: Pedido, ahora: Date, diasRecordatorio: number
     const e = estadoDeCuenta({
       userId: persona.userId,
       total: persona.total,
-      cobraId: p.cobra_user_id,
+      cobraId,
       pagos: p.payments.map((x) => ({ userId: x.user_id, monto: x.monto, estado: x.estado })),
     });
     return {
       ...e,
       pedidoId: p.id,
       titulo: p.titulo,
-      cobraId: p.cobra_user_id,
+      cobraId,
       deudorId: persona.userId,
       diasDesdeEntrega: dias,
       vencida: dias !== null && dias >= diasRecordatorio && e.saldo > 0,

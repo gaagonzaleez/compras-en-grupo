@@ -145,7 +145,9 @@ function Resumen({
               {misCuentas.extrasTotal > 0 ? ` + extras ${formatPesos(misCuentas.extrasTotal)}` : ""}
             </p>
             {pedido.estado !== "abierto" && pedido.cobra_user_id !== yoId && (
-              <p className="text-sm font-medium">Se le paga a {nombreDe(miembros, pedido.cobra_user_id)}.</p>
+              <p className="text-sm font-medium">
+                {pedido.cobra_user_id ? `Se le paga a ${nombreDe(miembros, pedido.cobra_user_id)}.` : "Se paga en el momento, al retirar."}
+              </p>
             )}
           </>
         ) : pedido.estado === "abierto" ? (
@@ -327,7 +329,7 @@ function Cuentas({
                       </div>
                       <div className="text-right">
                         <p className="text-lg font-bold">{formatPesos(p.total)}</p>
-                        {pedido.estado !== "abierto" && (
+                        {pedido.estado !== "abierto" && pedido.cobra_user_id !== null && (
                           <EtiquetaCuenta
                             estado={
                               estadoDeCuenta({
@@ -476,7 +478,15 @@ function Cobro({
   const hayExterno = !pedido.recibe_user_id && pedido.retiro_lugar;
   return (
     <div className="space-y-4">
-      <Contacto titulo="Quién recibe el dinero" m={cobra} />
+      {pedido.cobra_user_id ? (
+        <Contacto titulo="Quién recibe el dinero" m={cobra} />
+      ) : (
+        <Tarjeta className="space-y-1">
+          <h2 className="font-bold">Quién recibe el dinero</h2>
+          <p className="text-lg font-semibold text-emerald-900">Se paga en el momento, en otro lugar</p>
+          <p className="text-sm text-stone-700">Nadie del grupo cobra: cada uno paga al retirar. La app no registra pagos ni deudas de este pedido.</p>
+        </Tarjeta>
+      )}
       <Contacto titulo="Quién recibe el pedido" m={recibe} />
       {hayExterno && (
         <Tarjeta className="space-y-1">

@@ -1,5 +1,5 @@
 import { estadoDeCuenta, ETIQUETA_CUENTA } from "@/lib/calc";
-import { ESTADOS, cuentasDelPedido, fechaCorta, lugarDeRetiro, nombreDe, type Miembro, type Pedido } from "@/lib/pedido-tipos";
+import { ESTADOS, cuentasDelPedido, fechaCorta, lugarDeRetiro, nombreDe, quienCobra, type Miembro, type Pedido } from "@/lib/pedido-tipos";
 import type { ResumenMensual } from "@/lib/resumen";
 import { nombreDeMes } from "@/lib/resumen";
 import type { Celda } from "./csv";
@@ -26,6 +26,8 @@ export function detalleDePedido(p: Pedido, miembros: Miembro[]): DetallePedido {
   if (cuentas.ok) {
     let confirmado = 0;
     let saldo = 0;
+    // Sin cobrador (se paga en el momento) la app no registra pagos: solo se informa cuánto paga cada uno.
+    const sinCobrador = p.cobra_user_id === null;
     for (const persona of cuentas.res.personas) {
       const e = estadoDeCuenta({ userId: persona.userId, total: persona.total, cobraId: p.cobra_user_id, pagos: pagosIn });
       confirmado += e.confirmado;
@@ -36,12 +38,21 @@ export function detalleDePedido(p: Pedido, miembros: Miembro[]): DetallePedido {
         persona.subtotal,
         persona.extrasTotal,
         persona.total,
-        e.esCobrador ? persona.total : e.confirmado,
-        e.saldo,
-        e.esCobrador ? "Cobra (pagado)" : ETIQUETA_CUENTA[e.estado],
+        sinCobrador ? "" : e.esCobrador ? persona.total : e.confirmado,
+        sinCobrador ? "" : e.saldo,
+        sinCobrador ? "Se paga en el momento" : e.esCobrador ? "Cobra (pagado)" : ETIQUETA_CUENTA[e.estado],
       ]);
     }
-    totales = ["Total", cuentas.res.personas.reduce((s, x) => s + x.bultos, 0), cuentas.res.totalProductos, cuentas.res.totalExtras, cuentas.res.total, confirmado, saldo, ""];
+    totales = [
+      "Total",
+      cuentas.res.personas.reduce((s, x) => s + x.bultos, 0),
+      cuentas.res.totalProductos,
+      cuentas.res.totalExtras,
+      cuentas.res.total,
+      sinCobrador ? "" : confirmado,
+      sinCobrador ? "" : saldo,
+      "",
+    ];
   }
 
   return {
@@ -52,7 +63,7 @@ export function detalleDePedido(p: Pedido, miembros: Miembro[]): DetallePedido {
       ["Fecha del pedido", fechaCorta(p.fecha)],
       ["Entrega estimada", fechaCorta(p.fecha_entrega)],
       ["Organiza", nombreDe(miembros, p.organizador_id)],
-      ["Recibe el dinero", nombreDe(miembros, p.cobra_user_id)],
+      ["Recibe el dinero", quienCobra(p, miembros)],
       ["Recibe el pedido", lugarDeRetiro(p, miembros)],
       ["Reparto", p.modo_reparto === "por_cantidad" ? "Cada uno paga lo que compra" : "Todo en partes iguales"],
       ...(p.notas ? ([["Notas", p.notas]] as [string, string][]) : []),
@@ -104,7 +115,7 @@ export function filasDeHistorial(pedidos: Pedido[], miembros: Miembro[]): Celda[
       const c = cuentasDelPedido(p);
       return [
         p.fecha, p.titulo, p.proveedor ?? "", ESTADOS[p.estado].etiqueta,
-        nombreDe(miembros, p.organizador_id), nombreDe(miembros, p.cobra_user_id), lugarDeRetiro(p, miembros),
+        nombreDe(miembros, p.organizador_id), quienCobra(p, miembros), lugarDeRetiro(p, miembros),
         c.ok ? c.res.personas.length : "", c.ok ? c.res.totalProductos : "", c.ok ? c.res.totalExtras : "", c.ok ? c.res.total : "",
       ] as Celda[];
     }),

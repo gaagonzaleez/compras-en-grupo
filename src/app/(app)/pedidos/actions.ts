@@ -47,7 +47,8 @@ const pedidoSchema = z.object({
   fecha: z.string().default(""),
   fecha_entrega: z.string().default(""),
   notas: z.string().trim().default(""),
-  cobra_user_id: z.uuid("Elegí quién recibe el dinero."),
+  // Un miembro, o null si se paga en el momento en otro lugar (nadie del grupo cobra).
+  cobra_user_id: z.uuid("Elegí quién recibe el dinero.").nullable(),
   // Un miembro, o un lugar de retiro externo (nombre obligatorio, dirección opcional).
   recibe_user_id: z.uuid("Elegí quién recibe el pedido.").nullable(),
   retiro_lugar: z.string().trim().default(""),
@@ -159,7 +160,7 @@ async function sincronizarSaldado(orderId: string) {
   const pedido = await cargarPedido(orderId);
   if (!pedido || pedido.estado !== "entregado") return;
   const cuentas = cuentasDelPedido(pedido);
-  if (!cuentas.ok) return;
+  if (!cuentas.ok || pedido.cobra_user_id === null) return;
   const pagaron = todosPagaron(
     cuentas.res.personas,
     pedido.cobra_user_id,

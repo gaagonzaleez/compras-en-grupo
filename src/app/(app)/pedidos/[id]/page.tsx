@@ -17,6 +17,9 @@ import {
   type Miembro,
   type Pedido,
 } from "@/lib/pedidos";
+import { PanelPagos } from "@/components/panel-pagos";
+import { EtiquetaCuenta } from "@/components/etiqueta-cuenta";
+import { estadoDeCuenta } from "@/lib/calc";
 import { requirePerfil } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Pedido" };
@@ -91,7 +94,7 @@ export default async function PedidoPage({
       {tab === "cuentas" && (
         <Cuentas pedido={pedido} miembros={miembros} cuentas={cuentas} editar={editar} permisos={permisos} />
       )}
-      {tab === "cobro" && <Cobro pedido={pedido} miembros={miembros} misCuentas={misCuentas} yoId={perfil.id} />}
+      {tab === "cobro" && <Cobro pedido={pedido} miembros={miembros} yoId={perfil.id} esAdmin={esAdmin} />}
     </div>
   );
 }
@@ -300,7 +303,21 @@ function Cuentas({
                           {p.extrasTotal > 0 ? ` + extras ${formatPesos(p.extrasTotal)}` : ""}
                         </p>
                       </div>
-                      <p className="text-lg font-bold">{formatPesos(p.total)}</p>
+                      <div className="text-right">
+                        <p className="text-lg font-bold">{formatPesos(p.total)}</p>
+                        {pedido.estado !== "abierto" && (
+                          <EtiquetaCuenta
+                            estado={
+                              estadoDeCuenta({
+                                userId: p.userId,
+                                total: p.total,
+                                cobraId: pedido.cobra_user_id,
+                                pagos: pedido.payments.map((x) => ({ userId: x.user_id, monto: x.monto, estado: x.estado })),
+                              }).estado
+                            }
+                          />
+                        )}
+                      </div>
                     </div>
                     {extrasDetalle.length > 0 && (
                       <p className="mt-1 text-xs text-stone-500">
@@ -415,27 +432,21 @@ function Contacto({ titulo, m }: { titulo: string; m: Miembro | undefined }) {
 function Cobro({
   pedido,
   miembros,
-  misCuentas,
   yoId,
+  esAdmin,
 }: {
   pedido: Pedido;
   miembros: Miembro[];
-  misCuentas: { total: number } | undefined;
   yoId: string;
+  esAdmin: boolean;
 }) {
   const cobra = miembros.find((m) => m.id === pedido.cobra_user_id);
   const recibe = miembros.find((m) => m.id === pedido.recibe_user_id);
   return (
     <div className="space-y-4">
-      {misCuentas && pedido.estado !== "abierto" && (
-        <Alerta tipo={pedido.cobra_user_id === yoId ? "ok" : "aviso"}>
-          {pedido.cobra_user_id === yoId
-            ? `Vos cobrás este pedido: tu propia parte (${formatPesos(misCuentas.total)}) se considera pagada.`
-            : `Le tenés que pagar ${formatPesos(misCuentas.total)} a ${cobra?.negocio ?? "quien cobra"}.`}
-        </Alerta>
-      )}
       <Contacto titulo="Quién recibe el dinero" m={cobra} />
       <Contacto titulo="Quién recibe el pedido" m={recibe} />
+      <PanelPagos pedido={pedido} miembros={miembros} yoId={yoId} esAdmin={esAdmin} />
     </div>
   );
 }

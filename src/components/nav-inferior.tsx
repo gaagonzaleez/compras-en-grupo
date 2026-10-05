@@ -7,6 +7,7 @@ const ITEMS = [
   { href: "/", etiqueta: "Inicio", icono: "🏠" },
   { href: "/pedidos", etiqueta: "Pedidos", icono: "📦" },
   { href: "/pedidos/nuevo", etiqueta: "Nuevo", icono: "➕" },
+  { href: "/cuentas", etiqueta: "Cuentas", icono: "💰" },
   { href: "/perfil", etiqueta: "Perfil", icono: "👤" },
 ];
 
@@ -19,7 +20,7 @@ export function NavInferior() {
       aria-label="Principal"
       className="fixed inset-x-0 bottom-0 z-20 border-t border-stone-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
     >
-      <ul className="mx-auto grid max-w-2xl grid-cols-4">
+      <ul className="mx-auto grid max-w-2xl grid-cols-5">
         {ITEMS.map((i) => (
           <li key={i.href}>
             <Link

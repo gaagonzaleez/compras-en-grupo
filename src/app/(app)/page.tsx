@@ -1,15 +1,19 @@
 import Link from "next/link";
 import { claseBoton, Tarjeta } from "@/components/ui";
 import { TarjetaPedido } from "@/components/tarjeta-pedido";
-import { listarMiembros, listarPedidos } from "@/lib/pedidos";
+import { resumenDeCuentas } from "@/lib/cuentas";
+import { formatPesos } from "@/lib/calc";
+import { diasRecordatorio, listarMiembros, listarPedidos } from "@/lib/pedidos";
 import { requirePerfil } from "@/lib/session";
 
 export default async function InicioPage() {
   const perfil = await requirePerfil();
-  const [pedidos, miembros] = await Promise.all([
+  const [pedidos, miembros, dias] = await Promise.all([
     listarPedidos({ estados: ["abierto", "cerrado", "comprado", "entregado"], limite: 40 }),
     listarMiembros(),
+    diasRecordatorio(),
   ]);
+  const cuentas = resumenDeCuentas(pedidos, perfil.id, new Date(), dias);
   const abiertos = pedidos.filter((p) => p.estado === "abierto");
   const enCurso = pedidos.filter(
     (p) =>
@@ -28,6 +32,28 @@ export default async function InicioPage() {
 
       <Link href="/pedidos/nuevo" className={claseBoton("primario", "w-full min-h-14 text-lg")}>
         ➕ Nuevo pedido
+      </Link>
+
+      <Link href="/cuentas" className="block rounded-2xl bg-white p-4 shadow-sm ring-1 ring-stone-200">
+        <div className="grid grid-cols-2 gap-3 text-center">
+          <div>
+            <p className="text-xs text-stone-500">Mi deuda total</p>
+            <p className={`text-2xl font-bold ${cuentas.totalDebo > 0 ? "text-red-700" : "text-emerald-800"}`}>
+              {formatPesos(cuentas.totalDebo)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-stone-500">Me deben</p>
+            <p className="text-2xl font-bold text-emerald-800">{formatPesos(cuentas.totalMeDeben)}</p>
+          </div>
+        </div>
+        {(cuentas.porConfirmar.length > 0 || cuentas.debo.some((d) => d.vencida)) && (
+          <p className="mt-2 text-center text-sm font-semibold text-amber-800">
+            {cuentas.porConfirmar.length > 0 && `${cuentas.porConfirmar.length} pago(s) para confirmar`}
+            {cuentas.porConfirmar.length > 0 && cuentas.debo.some((d) => d.vencida) && " · "}
+            {cuentas.debo.some((d) => d.vencida) && "tenés deudas vencidas"}
+          </p>
+        )}
       </Link>
 
       <section aria-labelledby="abiertos" className="space-y-3">

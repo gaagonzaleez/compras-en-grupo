@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requirePerfil } from "@/lib/session";
+import { cargarPedido, cuentasDelPedido } from "@/lib/pedidos";
+import { todosPagaron } from "@/lib/calc";
 
 export interface Resultado {
   error?: string;
@@ -112,6 +114,7 @@ export async function cambiarEstado(orderId: string, nuevo: string): Promise<Res
   const { error } = await supabase.rpc("cambiar_estado", { p_order_id: orderId, p_nuevo: estado.data });
   if (error) return { error: mensajeDeError(error.message) };
 
+  if (estado.data === "entregado") await sincronizarSaldado(orderId);
   revalidatePath("/", "layout");
   return { ok: "Estado actualizado." };
 }
@@ -125,4 +128,71 @@ export async function eliminarPedido(orderId: string): Promise<Resultado> {
 
   revalidatePath("/", "layout");
   redirect("/");
+}
+
+// ───────────────────────── Pagos ─────────────────────────
+
+/** Si el pedido está entregado y ya pagaron todos, pasa solo a "Saldado". Si no tenés permiso, no pasa nada. */
+async function sincronizarSaldado(orderId: string) {
+  const pedido = await cargarPedido(orderId);
+  if (!pedido || pedido.estado !== "entregado") return;
+  const cuentas = cuentasDelPedido(pedido);
+  if (!cuentas.ok) return;
+  const pagaron = todosPagaron(
+    cuentas.res.personas,
+    pedido.cobra_user_id,
+    pedido.payments.map((p) => ({ userId: p.user_id, monto: p.monto, estado: p.estado })),
+  );
+  if (!pagaron) return;
+  const supabase = await createClient();
+  await supabase.rpc("cambiar_estado", { p_order_id: orderId, p_nuevo: "saldado" });
+}
+
+const pagoSchema = z.object({
+  monto: z.number({ error: "El monto tiene que ser un número entero de pesos." }).int("El monto tiene que ser un número entero de pesos.").min(1, "El monto tiene que ser mayor a $0."),
+  fecha: z.string().default(""),
+  medio: z.enum(["efectivo", "transferencia", "otro"]),
+  nota: z.string().trim().default(""),
+});
+
+export async function registrarPago(orderId: string, userId: string | null, datos: unknown): Promise<Resultado> {
+  await requirePerfil();
+  const parsed = pagoSchema.safeParse(datos);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("registrar_pago", {
+    p_order_id: orderId,
+    p_user_id: userId,
+    p_monto: parsed.data.monto,
+    p_fecha: parsed.data.fecha || null,
+    p_medio: parsed.data.medio,
+    p_nota: parsed.data.nota,
+  });
+  if (error) return { error: mensajeDeError(error.message) };
+
+  await sincronizarSaldado(orderId);
+  revalidatePath("/", "layout");
+  return { ok: userId ? "Pago cargado." : "Listo: le avisamos a quien cobra para que lo confirme." };
+}
+
+export async function confirmarPago(orderId: string, paymentId: string): Promise<Resultado> {
+  await requirePerfil();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("confirmar_pago", { p_payment_id: paymentId });
+  if (error) return { error: mensajeDeError(error.message) };
+
+  await sincronizarSaldado(orderId);
+  revalidatePath("/", "layout");
+  return { ok: "Pago confirmado." };
+}
+
+export async function eliminarPago(paymentId: string): Promise<Resultado> {
+  await requirePerfil();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("eliminar_pago", { p_payment_id: paymentId });
+  if (error) return { error: mensajeDeError(error.message) };
+
+  revalidatePath("/", "layout");
+  return { ok: "Pago eliminado." };
 }

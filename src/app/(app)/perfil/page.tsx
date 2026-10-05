@@ -23,6 +23,9 @@ export default async function PerfilPage() {
       <Link href="/avisos/preferencias" className={claseBoton("secundario", "w-full")}>
         🔔 Preferencias de avisos
       </Link>
+      <Link href="/nueva-clave" className={claseBoton("secundario", "w-full")}>
+        🔑 Cambiar mi contraseña
+      </Link>
       <Link href="/instalar" className={claseBoton("secundario", "w-full")}>
         📲 Instalar la app en el celular
       </Link>

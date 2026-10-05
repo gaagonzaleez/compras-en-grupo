@@ -44,7 +44,7 @@ export default async function PedidosPage({
               key={e ?? "todos"}
               href={chip(e)}
               aria-current={activo ? "true" : undefined}
-              className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold ${activo ? "bg-emerald-700 text-white" : "bg-white text-stone-700 ring-1 ring-stone-300"}`}
+              className={`inline-flex min-h-11 items-center whitespace-nowrap rounded-full px-4 text-sm font-semibold ${activo ? "bg-emerald-700 text-white" : "bg-white text-stone-700 ring-1 ring-stone-300"}`}
             >
               {e ? ESTADOS[e].etiqueta : "Todos"}
             </Link>

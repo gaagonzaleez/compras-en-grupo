@@ -5,6 +5,7 @@ import { AccionesPedido } from "@/components/acciones-pedido";
 import { CantidadesForm, type ItemCantidad } from "@/components/cantidades-form";
 import { ExtrasPanel } from "@/components/extras-panel";
 import type { ExtraForm } from "@/components/extras-editor";
+import type { FilaAuditoria } from "@/lib/auditoria";
 import { EtiquetaEstado } from "@/components/tarjeta-pedido";
 import { Alerta, Tarjeta } from "@/components/ui";
 import { bultosRestantes, formatPesos } from "@/lib/calc";
@@ -19,7 +20,9 @@ import {
   type Pedido,
 } from "@/lib/pedidos";
 import { BotonEliminarComprobante, SubirComprobante } from "@/components/comprobantes-ui";
+import { ListaAuditoria } from "@/components/lista-auditoria";
 import { PanelPagos } from "@/components/panel-pagos";
+import { listarAuditoria } from "@/lib/auditoria-datos";
 import { EtiquetaCuenta } from "@/components/etiqueta-cuenta";
 import { estadoDeCuenta } from "@/lib/calc";
 import { requirePerfil } from "@/lib/session";
@@ -60,6 +63,7 @@ export default async function PedidoPage({
   };
 
   const urls = tab === "comprobantes" || tab === "cobro" ? await urlsFirmadas(pedido.attachments.map((a) => a.path)) : {};
+  const historial = tab === "cuentas" ? await listarAuditoria({ orderId: pedido.id, limite: 60 }) : [];
   const cuentas = cuentasDelPedido(pedido);
   const misCuentas = cuentas.ok ? cuentas.res.personas.find((p) => p.userId === perfil.id) : undefined;
 
@@ -84,7 +88,7 @@ export default async function PedidoPage({
             key={t.id}
             href={`/pedidos/${pedido.id}?tab=${t.id}`}
             aria-current={tab === t.id ? "page" : undefined}
-            className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold ${tab === t.id ? "bg-emerald-700 text-white" : "bg-white text-stone-700 ring-1 ring-stone-300"}`}
+            className={`inline-flex min-h-11 items-center whitespace-nowrap rounded-full px-4 text-sm font-semibold ${tab === t.id ? "bg-emerald-700 text-white" : "bg-white text-stone-700 ring-1 ring-stone-300"}`}
           >
             {t.etiqueta}
           </Link>
@@ -96,7 +100,7 @@ export default async function PedidoPage({
       )}
       {tab === "productos" && <Productos pedido={pedido} yoId={perfil.id} puedeAnotarse={permisos.anotarse} />}
       {tab === "cuentas" && (
-        <Cuentas pedido={pedido} miembros={miembros} cuentas={cuentas} editar={editar} permisos={permisos} />
+        <Cuentas pedido={pedido} miembros={miembros} cuentas={cuentas} editar={editar} permisos={permisos} historial={historial} />
       )}
       {tab === "cobro" && <Cobro pedido={pedido} miembros={miembros} yoId={perfil.id} esAdmin={esAdmin} urls={urls} />}
       {tab === "comprobantes" && <Comprobantes pedido={pedido} miembros={miembros} yoId={perfil.id} esAdmin={esAdmin} urls={urls} />}
@@ -277,12 +281,14 @@ function Cuentas({
   cuentas,
   editar,
   permisos,
+  historial,
 }: {
   pedido: Pedido;
   miembros: Miembro[];
   cuentas: ReturnType<typeof cuentasDelPedido>;
   editar: string | undefined;
   permisos: Permisos;
+  historial: FilaAuditoria[];
 }) {
   const aEditar = permisos.cargarDeOtros && editar ? miembros.find((m) => m.id === editar && m.activo) : undefined;
   const participan = new Set(cuentas.ok ? cuentas.res.personas.map((p) => p.userId) : []);
@@ -382,7 +388,7 @@ function Cuentas({
               <select
                 name="editar"
                 aria-label="Miembro"
-                className="min-h-12 flex-1 rounded-xl border border-stone-300 bg-white px-3 text-base"
+                className="min-h-12 min-w-0 flex-1 rounded-xl border border-stone-300 bg-white px-3 text-base"
                 defaultValue=""
               >
                 <option value="" disabled>Elegí un miembro…</option>
@@ -418,6 +424,13 @@ function Cuentas({
             ))}
           </ul>
         )}
+      </Tarjeta>
+
+      <Tarjeta>
+        <details>
+          <summary className="min-h-10 cursor-pointer py-2 font-bold">📜 Historial de cambios ({historial.length})</summary>
+          <div className="mt-2"><ListaAuditoria filas={historial} miembros={miembros} /></div>
+        </details>
       </Tarjeta>
     </div>
   );

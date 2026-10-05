@@ -23,7 +23,7 @@ export default async function ResumenPage({ searchParams }: { searchParams: Prom
       <Titulo sub="Según la fecha de cada pedido. No incluye los que siguen abiertos.">Resumen mensual</Titulo>
 
       <form method="get" className="flex gap-2">
-        <select name="mes" defaultValue={mes} aria-label="Mes" className="min-h-12 flex-1 rounded-xl border border-stone-300 bg-white px-3 text-base">
+        <select name="mes" defaultValue={mes} aria-label="Mes" className="min-h-12 min-w-0 flex-1 rounded-xl border border-stone-300 bg-white px-3 text-base">
           {[...new Set([mes, ...meses])].sort().reverse().map((m) => <option key={m} value={m}>{nombreDeMes(m)}</option>)}
         </select>
         <button type="submit" className="min-h-12 rounded-xl bg-emerald-700 px-5 font-semibold text-white">Ver</button>

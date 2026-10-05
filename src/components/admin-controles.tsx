@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
-import { cambiarMiembro, guardarAjustes, regenerarCodigo, type ResultadoAdmin } from "@/app/(app)/admin/actions";
+import { cambiarMiembro, guardarAjustes, regenerarCodigo, resetearAcceso, type ResultadoAdmin } from "@/app/(app)/admin/actions";
 import { BotonSubmit } from "@/components/boton-submit";
 import { Alerta, Boton, Campo } from "@/components/ui";
 
@@ -61,7 +61,16 @@ export function AccionesMiembro({
   esYo: boolean;
 }) {
   const [error, setError] = useState<string | null>(null);
+  const [clave, setClave] = useState<string | null>(null);
   const [pendiente, empezar] = useTransition();
+  const resetear = () => {
+    if (!window.confirm("Se crea una contraseña temporal y la anterior deja de servir. ¿Seguir?")) return;
+    empezar(async () => {
+      const r = await resetearAcceso(id);
+      setError(r.error ?? null);
+      setClave(r.clave ?? null);
+    });
+  };
   const aplicar = (cambios: Parameters<typeof cambiarMiembro>[1], aviso?: string) => {
     if (aviso && !window.confirm(aviso)) return;
     empezar(async () => setError((await cambiarMiembro(id, cambios)).error ?? null));
@@ -69,7 +78,18 @@ export function AccionesMiembro({
   return (
     <div className="mt-2 space-y-2">
       {error && <Alerta>{error}</Alerta>}
+      {clave && (
+        <Alerta tipo="ok">
+          Contraseña temporal (se muestra una sola vez):{" "}
+          <b className="select-all font-mono text-base" data-testid="clave-temporal">{clave}</b>
+          <br />
+          Pasásela por un medio privado y pedile que la cambie desde Perfil → Cambiar mi contraseña.
+        </Alerta>
+      )}
       <div className="flex flex-wrap gap-2">
+        <Boton type="button" variante="suave" className="min-h-10 px-3 text-sm" disabled={pendiente} onClick={resetear}>
+          Resetear acceso
+        </Boton>
         {rol === "miembro" ? (
           <Boton type="button" variante="suave" className="min-h-10 px-3 text-sm" disabled={pendiente || !activo} onClick={() => aplicar({ rol: "admin" }, "¿Hacer admin a este miembro?")}>
             Hacer admin

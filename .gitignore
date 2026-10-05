@@ -42,3 +42,6 @@ next-env.d.ts
 
 # plantilla de variables de entorno (sin secretos)
 !.env.example
+
+# pruebas e2e: binarios, claves y capturas generados
+/e2e/.cache/

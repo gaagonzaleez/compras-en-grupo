@@ -9,3 +9,11 @@ describe("hoyAR", () => {
     expect(hoyAR(new Date("2026-10-05T02:59:00Z"))).toBe("2026-10-04");
   });
 });
+
+import { fechaHora } from "./fechas";
+describe("fechaHora", () => {
+  it("muestra día, mes y hora en horario de Argentina", () => {
+    const f = fechaHora("2026-10-05T17:32:00Z"); // 14:32 en Buenos Aires
+    expect(f).toMatch(/^5 oct,? 14:32$/);
+  });
+});

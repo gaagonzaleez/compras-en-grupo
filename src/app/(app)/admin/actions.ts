@@ -4,6 +4,8 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, hayServiceRole } from "@/lib/supabase/admin";
+import { claveTemporal } from "@/lib/claves";
 import { requireAdmin } from "@/lib/session";
 
 export interface ResultadoAdmin {
@@ -44,4 +46,31 @@ export async function cambiarMiembro(
   if (error) return { error: error.message };
   revalidatePath("/admin");
   return { ok: "Listo." };
+}
+
+export interface ResultadoReseteo extends ResultadoAdmin {
+  clave?: string;
+}
+
+/**
+ * Le asigna una contraseña temporal a un miembro (típico: se olvidó la clave y entra con celular,
+ * sin email para recuperarla). Se muestra una sola vez; conviene que la cambie al entrar.
+ */
+export async function resetearAcceso(id: string): Promise<ResultadoReseteo> {
+  const admin = await requireAdmin();
+  if (!z.uuid().safeParse(id).success) return { error: "Miembro inválido." };
+  if (!hayServiceRole()) return { error: "Falta configurar SUPABASE_SERVICE_ROLE_KEY para resetear accesos." };
+
+  const clave = claveTemporal();
+  const db = createAdminClient();
+  const { error } = await db.auth.admin.updateUserById(id, { password: clave });
+  if (error) return { error: "No pudimos resetear el acceso." };
+
+  await db.from("audit_log").insert({
+    actor_id: admin.id,
+    tabla: "auth",
+    accion: "reset_clave",
+    despues: { user_id: id },
+  });
+  return { ok: "Contraseña temporal creada.", clave };
 }

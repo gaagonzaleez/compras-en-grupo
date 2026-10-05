@@ -1,50 +1,63 @@
 # Compras en Grupo
 
-PWA en español rioplatense para que un grupo de ~20 comerciantes organice **compras en conjunto**: cargan pedidos con varios productos, cada uno anota cuántos bultos se lleva y la app calcula cuánto paga cada uno, a quién y con qué costos extra. Dinero siempre en **pesos enteros** (sin centavos).
+PWA en español rioplatense para que un grupo de ~20 comerciantes organice **compras en conjunto**: cargan pedidos con varios productos, cada uno anota cuántos bultos se lleva y la app calcula cuánto paga cada uno, a quién se le paga, quién debe y quién ya pagó. Dinero siempre en **pesos enteros** (sin centavos).
 
-**Stack:** Next.js 16 (App Router) · TypeScript · Tailwind 4 · Supabase (Postgres + Auth) · Vitest.
+**Stack:** Next.js 16 (App Router) · TypeScript · Tailwind 4 · Supabase (Postgres + Auth + Storage) · Web Push · Vitest · Playwright.
 
-## Estado por etapas (ver SPEC)
+## Qué hace
 
-| Etapa | Estado |
-|---|---|
-| 1. Base, auth, registro con código de invitación, perfiles, PWA instalable | ✅ |
-| 2. Pedidos: crear/editar, productos, cantidades, estados, cobra/recibe | ✅ |
-| 3. Cálculo de cuentas, extras, redondeo por mayor resto (con tests) | ✅ |
-| 4. Pagos, “Mis cuentas”, recordatorios de deuda | ✅ |
-| 5. Notificaciones push + email | ✅ |
-| 6. Historial, resumen mensual, exportaciones, comprobantes | ✅ |
-| 7. Auditoría, reseteo de acceso por admin, pulido | ⏳ (el panel de admin básico ya está) |
+| Etapa | Contenido | Estado |
+|---|---|---|
+| 1 | Registro con email o celular, código de invitación, perfiles, roles, PWA instalable | ✅ |
+| 2 | Pedidos (alta en pasos, edición), productos por unidad o bulto, cantidades por miembro, estados, quién cobra y quién recibe | ✅ |
+| 3 | Cuentas con redondeo por mayor resto, costos extra (iguales / proporcional / manual) | ✅ |
+| 4 | Pagos parciales con confirmación, “Mis cuentas”, saldado automático, deudas vencidas | ✅ |
+| 5 | Avisos: bandeja, push, email de respaldo, preferencias, recordatorios manuales y automáticos | ✅ |
+| 6 | Historial con filtros, resumen mensual, exportar a PDF/Excel/CSV, comprobantes (fotos y PDF) | ✅ |
+| 7 | Auditoría de cambios, panel admin, reseteo de acceso, backups, pruebas en distintos dispositivos | ✅ |
+
+Para probarla a mano: [`docs/PRUEBA_MANUAL.md`](docs/PRUEBA_MANUAL.md).
 
 ## Puesta en marcha
 
-1. **Supabase** (gratis): creá un proyecto. En *SQL Editor* pegá y ejecutá `supabase/migrations/20260101000000_init.sql`.
-2. En *Authentication → Providers → Email*: **desactivá “Confirm email”**. Es un grupo cerrado por invitación y quienes entran con celular usan un email técnico que no recibe mails. En *URL Configuration* poné la URL de la app (y `<url>/auth/callback` en Redirect URLs) para el link de recuperar contraseña.
-3. Ejecutá también las migraciones siguientes de `supabase/migrations/` en orden (`..._pagos.sql`, `..._avisos.sql`, `..._comprobantes.sql`; esta última crea el bucket privado `comprobantes` en Storage).
-4. `cp .env.example .env.local` y completá `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Project Settings → API).
-   Para los **avisos** hacen falta además (ver `.env.example`): `SUPABASE_SERVICE_ROLE_KEY` (solo servidor, nunca en el navegador), claves VAPID (`npx web-push generate-vapid-keys`), `RESEND_API_KEY`/`EMAIL_FROM` para el email de respaldo y `CRON_SECRET`. Sin estas variables la app funciona igual, pero no manda avisos.
-5. `npm install && npm run dev` → http://localhost:3000.
-6. **El primer usuario que se registra queda como admin y no necesita código.** Desde *Perfil → Administrar el grupo* ve el código de invitación para pasárselo al resto.
-7. Deploy: Vercel (importar el repo y cargar las mismas variables). `vercel.json` ya programa el cron diario de recordatorios.
+1. **Supabase** (gratis alcanza para empezar): creá un proyecto. En *SQL Editor* ejecutá, **en orden**, los archivos de `supabase/migrations/`:
+   `..._init.sql` → `..._pagos.sql` → `..._avisos.sql` → `..._comprobantes.sql` → `..._auditoria.sql`.
+2. *Authentication → Providers → Email*: **desactivá “Confirm email”** (es un grupo cerrado por invitación y quienes entran con celular usan un email técnico que no recibe mails). En *URL Configuration* poné la URL de la app y agregá `<url>/auth/callback` en Redirect URLs.
+   Para que lleguen los mails de “olvidé mi contraseña” configurá un SMTP propio (*Auth → SMTP Settings*): el de Supabase tiene un límite muy bajo.
+3. `cp .env.example .env.local` y completalo (cada variable está explicada ahí):
+   - **Obligatorias:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`.
+   - **Avisos y administración:** `SUPABASE_SERVICE_ROLE_KEY` (solo servidor), claves VAPID (`npx web-push generate-vapid-keys`), `RESEND_API_KEY` + `EMAIL_FROM`, `CRON_SECRET`. Sin ellas la app funciona, pero no manda avisos ni deja resetear accesos.
+4. `npm install && npm run dev` → http://localhost:3000.
+5. **La primera persona que se registra queda como admin y no necesita código.** Desde *Perfil → Administrar el grupo* ve el código de invitación para pasárselo al resto.
+6. **Deploy:** Vercel (importar el repo y cargar las mismas variables). `vercel.json` ya programa el cron diario de recordatorios (`/api/cron/recordatorios`).
+7. **Backups:** ver [`docs/BACKUPS.md`](docs/BACKUPS.md).
 
 ## Scripts
 
-- `npm test` — tests del motor de cálculo y utilidades.
-- `npm run test:db` — prueba migraciones, RLS y funciones contra un Postgres local descartable (`PGHOST/PGPORT/PGUSER` apuntando a uno; ver `scripts/test-db.sh`).
-- `npm run typecheck`, `npm run lint`, `npm run build`.
-- `npm run iconos` — regenera los íconos de la PWA.
+| Comando | Qué hace |
+|---|---|
+| `npm test` | Tests unitarios: cálculo de dinero, filtros, resúmenes, avisos, exportaciones (96) |
+| `npm run test:db` | Migraciones, RLS, triggers y funciones contra un Postgres local descartable |
+| `npm run test:e2e` | Recorridos completos en un navegador real contra un Supabase simulado (ver [`e2e/README.md`](e2e/README.md)) |
+| `npm run typecheck` · `npm run lint` · `npm run build` | Chequeos habituales |
+| `npm run iconos` | Regenera los íconos de la PWA |
 
 ## Decisiones de diseño
 
-- **Cálculo de dinero** (`src/lib/calc`): funciones puras, enteros, BigInt en el reparto proporcional. Reparto por **mayor resto** con orden determinístico por id: la suma de las partes siempre es exactamente el total. El ejemplo del spec (flete $50.000 entre 7 → seis de $7.143 y una de $7.142) es un test.
-- **Precio del bulto es la verdad**: lo que se cobra es `precio_bulto`. Si se carga por unidad, `bulto = unitario × unidades` (entero exacto); si se carga el bulto, el unitario mostrado es orientativo.
-- **Autorización en la base**, no en la UI: Row Level Security + funciones `guardar_pedido`, `guardar_cantidades`, `guardar_extras` y `cambiar_estado` (`estado` solo cambia por esta última; valida cierre sin sobreasignar y extras manuales que sumen). Cada acción del servidor corre con la sesión de la persona, así que RLS siempre aplica.
-- **Código de invitación validado en un trigger** de `auth.users`: no se puede saltear llamando directo a la API de Auth.
-- **Celular sin SMS**: quien se registra con celular entra con un email técnico derivado del número (`<10 dígitos>@PHONE_EMAIL_DOMAIN`). La recuperación de contraseña es solo por email; para celulares queda pendiente el reseteo por admin (etapa 7, requiere la `service_role` en un endpoint de servidor).
-- **Cuentas calculadas al vuelo** desde cantidades y precios; no se guardan totales que puedan desincronizarse. `extra_cost_shares` guarda solo los montos del reparto manual.
-- **Reglas de edición**: cantidades solo con el pedido *abierto* (admin siempre); datos/productos los edita el organizador mientras esté abierto; los costos extra hasta *comprado* (el flete suele llegar después de cerrar). Reabrir un pedido cerrado recalcula todo (el aviso a afectados llega con las notificaciones, etapa 5).
-- **Next.js 16**: `middleware` ahora se llama `proxy` (`src/proxy.ts`), refresca la sesión y manda a `/login`.
+- **Dinero** (`src/lib/calc`): funciones puras, enteros, BigInt en el reparto proporcional. Reparto por **mayor resto** con orden determinístico por id: la suma de las partes es siempre exactamente el total (el ejemplo del spec —flete $50.000 entre 7— es un test, junto con tests de propiedades).
+- **El precio del bulto es la verdad.** Si se carga por unidad, `bulto = unitario × unidades` (entero exacto); si se carga el bulto, el unitario que se muestra es orientativo.
+- **Autorización en la base**, no en la interfaz: Row Level Security + funciones transaccionales (`guardar_pedido`, `guardar_cantidades`, `cambiar_estado`, `registrar_pago`, `confirmar_pago`…). Las acciones del servidor corren con la sesión de la persona, así que RLS siempre aplica. La `service_role` se usa solo para avisos a terceros, el cron, el reseteo de accesos y borrar archivos.
+- **Código de invitación validado en un trigger** de `auth.users`: no se puede saltear llamando directo a la API.
+- **Celular sin SMS:** quien se registra con celular entra con un email técnico derivado del número. Si olvida la clave, el admin le asigna una temporal (queda en el registro de auditoría).
+- **Cuentas calculadas al vuelo** desde cantidades y precios: no hay totales guardados que puedan desincronizarse.
+- **Pagos:** quien paga avisa (queda pendiente) y quien cobra confirma; solo cuentan los confirmados. Nadie confirma su propio pago. Quien cobra no se debe a sí mismo.
+- **Auditoría por triggers** (quién, cuándo, valor anterior) de cantidades, precios, extras, pagos y estados; los datos de la auditoría no se pueden editar desde la app.
+- **Avisos que nunca rompen la acción** que los origina; push → si falla o no está activo, email de respaldo (respeta las preferencias de cada uno).
+- **Next.js 16:** `middleware` ahora es `proxy` (`src/proxy.ts`); `cookies()` y `params` son asíncronos.
 
-## Supuestos a confirmar
+## Límites conocidos
 
-Los de la sección 15 del spec, más: “todo en partes iguales” reparte los productos entre quienes se anotaron (cantidad > 0); un pedido no puede cerrarse si se anotaron más bultos que los disponibles (se avisa antes, no se bloquea al anotarse).
+- Un solo grupo (~20 miembros), como pide el spec. Integración con WhatsApp: fuera de alcance.
+- Probado con Supabase **simulado** (PostgREST real + login/Storage de mentira); el primer deploy con el proyecto real conviene recorrerlo con la guía de prueba manual, sobre todo push en iPhone y Android.
+- Las pruebas de dispositivos emulan iPhone/Android/PC con Chromium; no hay WebKit real.
+- Las fotos de iPhone en HEIC se convierten a JPG al elegirlas desde el navegador; si algún dispositivo subiera HEIC crudo, se rechaza con un mensaje.

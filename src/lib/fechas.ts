@@ -7,3 +7,17 @@ export function hoyAR(ahora: Date = new Date()): string {
     day: "2-digit",
   }).format(ahora);
 }
+
+/** "5 oct, 14:32" en hora de Argentina. */
+export function fechaHora(iso: string): string {
+  return new Intl.DateTimeFormat("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+    .format(new Date(iso))
+    .replace(".", "");
+}

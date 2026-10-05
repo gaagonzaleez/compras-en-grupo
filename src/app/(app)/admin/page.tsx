@@ -32,6 +32,10 @@ export default async function AdminPage() {
         <AjustesForm dias={ajustes?.dias_recordatorio ?? 7} />
       </Tarjeta>
 
+      <Link href="/admin/auditoria" className="block rounded-2xl bg-white p-4 text-center font-semibold text-emerald-800 shadow-sm ring-1 ring-stone-200">
+        📜 Ver registro de cambios del grupo
+      </Link>
+
       <Tarjeta>
         <h2 className="mb-2 font-bold">Miembros ({miembros.filter((m) => m.activo).length} activos)</h2>
         <ul className="divide-y divide-stone-100">
